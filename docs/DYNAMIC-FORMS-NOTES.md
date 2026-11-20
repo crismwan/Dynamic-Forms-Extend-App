@@ -212,3 +212,15 @@ Beth Liu's requests below were started as Beth through Start Proxy (task 2997$67
 - **Setup kit:** Readiness check kind `bpDefs` (toolkitChecks.bpDefs) lists every definition of the named process types with their Service/To Do counts from one WQL call; check list `docs/dynamic-forms-readiness.json` (paste into Readiness). The setup guide and retest checklist were updated (3.14-3.16, 5.1, 5.6, 6.2, 6.4). Not yet deployed: CI 44659197662 failed at the token step.
 - **Readiness `bpDefs` live (19:25, after token refresh):** 3 checks ran in 3.5 s / 0.5 s / 0.5 s. It found **four** Onboarding definitions: Default, Location Change, Promotion for Job Change and Next Level Enterprise (we had set up two), and two Change Job definitions (Default, Simplified for Data Entry). Service step names read "step c - Service <more>", so the count uses contains, not endsWith (first run counted 0).
 - **Readiness after the fix (19:30, passed):** Request Time Off (Default) 2 Service, 3 To Do → Pass. Change Job (Default) 3 Service; **Simplified for Data Entry 0** → Review. Onboarding Default 2 and Next Level Enterprise 2; **Location Change 0, Promotion for Job Change 0** → Review. Those three definitions have no form steps: a request that runs under them gets no form. Adding steps there is a process-owner decision.
+
+## Security policies for the new app (2026-11-19 ~20:40)
+
+The new app's domains had no security policy after the first deploy: View Domain showed no policy, and the domain's related actions offered only Domain → **Create Security Policy** (tick Confirm, OK, then add the permission rows). Created, copying the toolkit's forms domains:
+
+| Domain | Report/Task | Integration |
+|---|---|---|
+| Use: Dynamic Forms | HR Administrator + TEST:LAB:SUB ISSG: View and Modify; TEST:DYN Non-HR App Viewer: View (test group, remove after the confidential retest) | HR Administrator + TEST:LAB:SUB ISSG: Get and Put |
+| Dyn Forms Fill | All Employees + Pre-Employee as Self: View and Modify | none |
+| Dyn Confidential Answers | HR Administrator: View | TEST:LAB:SUB ISSG: Get and Put |
+
+Pending until Activate Pending Security Policy Changes.
