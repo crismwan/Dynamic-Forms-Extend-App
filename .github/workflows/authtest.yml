@@ -1,0 +1,91 @@
+name: Sign-in test (read only)
+
+# Tries the ways CI could sign in with an API client instead of copied tokens, and reports which work.
+# Reads only: token requests, app list/info, and status codes of two GET calls. Never prints a token.
+on:
+  workflow_dispatch:
+
+env:
+  WDCLI_VERSION: "1.9.43"
+  WD_ACCOUNT: ${{ vars.WD_ACCOUNT }}
+  WD_TENANT: ${{ vars.WD_TENANT }}
+  APP_REF: developertoolkitappv1_kwswrv
+
+jobs:
+  authtest:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install wdcli
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /opt/wdcli-download /opt/wdcli
+          gh release download "wdcli-v${WDCLI_VERSION}" --repo "${{ github.repository }}" \
+            --pattern "wdcli-installer-linux-x64-*.tar.gz" --dir /opt/wdcli-download
+          tar xzf /opt/wdcli-download/wdcli-installer-linux-x64-*.tar.gz -C /opt/wdcli
+          WDCLI_BIN=$(find /opt/wdcli -name wdcli -type f | head -1)
+          chmod +x "${WDCLI_BIN}"
+          echo "$(dirname "${WDCLI_BIN}")" >> "$GITHUB_PATH"
+
+      - name: Tests
+        env:
+          CID: ${{ secrets.WD_TENANT_CLIENT_ID }}
+          CSECRET: ${{ secrets.WD_TENANT_CLIENT_SECRET }}
+        run: |
+          set +e
+          S="$GITHUB_STEP_SUMMARY"
+          red() { sed -E 's/(eyJ|Bearer )[A-Za-z0-9._-]{8,}/[redacted]/g'; }
+          claims() { node -e 'const t=process.argv[1].split(".")[1]||"";try{const c=JSON.parse(Buffer.from(t,"base64url").toString());const o={};for(const k of ["iss","aud","exp","iat","region","tenant","tenantAlias","tenant_alias","client_id","azp","scope","scp","typ","sys","env"])if(c[k]!==undefined)o[k]=c[k];o.lifetimeSeconds=(c.exp&&c.iat)?c.exp-c.iat:null;o.keys=Object.keys(c);console.log(JSON.stringify(o))}catch(e){console.log("not a JWT")}' "$1"; }
+          echo "## Sign-in test: account ${WD_ACCOUNT}, tenant ${WD_TENANT}" >> "$S"
+          [ -n "$CID" ] && [ -n "$CSECRET" ] || { echo "WD_TENANT_CLIENT_ID / WD_TENANT_CLIENT_SECRET missing" >> "$S"; exit 1; }
+
+          echo "### 1. Tenant token (client credentials + tenant_alias)" >> "$S"
+          GOT=""
+          for URL in https://auth.api.workday.com/v1/token https://api.odp.wcp.workday.com/auth/v1/token https://api.us.wcp.workday.com/auth/v1/token; do
+            for SCHEME in Basic ID; do
+              CRED=$(printf '%s' "$CID:$CSECRET" | base64 -w0)
+              CODE=$(curl -sS -o /tmp/tok.json -w '%{http_code}' -X POST "$URL" -H "Authorization: $SCHEME $CRED" \
+                -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=client_credentials&tenant_alias=$WD_TENANT")
+              TOK=$(jq -r '.access_token // empty' /tmp/tok.json 2>/dev/null)
+              if [ -n "$TOK" ]; then
+                echo "- $URL ($SCHEME): **$CODE, token issued** $(claims "$TOK")" >> "$S"
+                [ -z "$GOT" ] && { GOT="$TOK"; echo "$TOK" > /tmp/tenant.tok; }
+              else
+                echo "- $URL ($SCHEME): $CODE $(head -c 300 /tmp/tok.json | red)" >> "$S"
+              fi
+            done
+          done
+
+          if [ -n "$GOT" ]; then
+            echo "### 2. Does the tenant token read the tenant? (GET status only)" >> "$S"
+            for B in https://api.odp.wcp.workday.com https://api.us.wcp.workday.com https://api.workday.com; do
+              for P in "wql/v1/dataSources?limit=1" "common/v1/workers?limit=1"; do
+                C=$(curl -sS -o /tmp/r.json -w '%{http_code}' -H "Authorization: Bearer $GOT" "$B/$P")
+                echo "- $B/$P: $C $(head -c 160 /tmp/r.json | tr -d '\n' | red)" >> "$S"
+              done
+            done
+          fi
+
+          echo "### 3. Same client as the wdcli system user (developer-site sign-in, for upload)" >> "$S"
+          for ENVN in personal enterprise; do
+            rm -rf "$HOME/.config/@workday"; mkdir -p "$HOME/.config/@workday/wdcli"
+            jq -n --arg acc "$WD_ACCOUNT" --arg ten "$WD_TENANT" --arg e "$ENVN" \
+              '{defaultAccountShortId: $acc, defaultTenantAlias: $ten, loginEnvironment: $e}' > "$HOME/.config/@workday/wdcli/config.json"
+            OUT=$(WDCLI_CLIENT_ID="$CID" WDCLI_CLIENT_SECRET="$CSECRET" WDCLI_ENVIRONMENT="$ENVN" timeout 120 wdcli auth login --system-user -e "$ENVN" 2>&1 | red | tail -5)
+            echo "- auth login --system-user -e $ENVN: \`$(echo "$OUT" | tr '\n' ' ' | head -c 400)\`" >> "$S"
+            WT=$(jq -r '.wcpAccessToken // empty' "$HOME/.config/@workday/wdcli/config.json")
+            if [ -n "$WT" ]; then
+              echo "  - developer token claims: $(claims "$WT")" >> "$S"
+              echo "  - whoami: \`$(timeout 60 wdcli whoami --ci 2>&1 | red | tr '\n' ' ' | head -c 400)\`" >> "$S"
+              echo "  - account list: \`$(timeout 60 wdcli account list --ci -f json 2>&1 | red | tr '\n' ' ' | head -c 600)\`" >> "$S"
+              echo "  - app list: \`$(timeout 60 wdcli app list -a "$WD_ACCOUNT" --ci -f json 2>&1 | red | jq -c '[.[]?|{referenceId,name}]' 2>/dev/null | head -c 600)\`" >> "$S"
+              echo "  - app info $APP_REF: \`$(timeout 60 wdcli app info "$APP_REF" -a "$WD_ACCOUNT" --ci -f json 2>&1 | red | tr '\n' ' ' | head -c 700)\`" >> "$S"
+              break
+            fi
+          done
+          cat "$S"
+          exit 0

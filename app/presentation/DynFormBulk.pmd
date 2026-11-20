@@ -1,0 +1,215 @@
+{
+  "id": "DynFormBulk",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "script": "<%\n  var days = function() { ['2027-01-04', '2027-01-05', '2027-01-06', '2027-01-07', '2027-01-08', '2027-01-11', '2027-01-12', '2027-01-13', '2027-01-14', '2027-01-15', '2027-01-18', '2027-01-19', '2027-01-20', '2027-01-21', '2027-01-22', '2027-01-25', '2027-01-26', '2027-01-27', '2027-01-28', '2027-01-29', '2027-02-01', '2027-02-02', '2027-02-03', '2027-02-04', '2027-02-05', '2027-02-08', '2027-02-09', '2027-02-10', '2027-02-11', '2027-02-12', '2027-02-15', '2027-02-16', '2027-02-17', '2027-02-18', '2027-02-19', '2027-02-22', '2027-02-23', '2027-02-24', '2027-02-25', '2027-02-26', '2027-03-01', '2027-03-02', '2027-03-03', '2027-03-04', '2027-03-05', '2027-03-08', '2027-03-09', '2027-03-10', '2027-03-11', '2027-03-12']; };\n  var total = function() { countAll.invoke({'lim': '1'}).total ?? 0; };\n  var names = function() { ('' + (workerText.getValue() ?? '')).split(',').map(x => { x.trim() }).filter(x => { !empty(x) }); };\n  var started = function() { ('' + (idsText.getValue() ?? '')).split(',').filter(x => { !empty(x) }).size(); };\n  var useWorker = function(n) {\n    var all = names();\n    if (n >= all.size()) { return false; }\n    var ws = workerFind.invoke({'q': all.get(n).urlEncode()}).data ?? [];\n    if (ws.size() == 0) { return false; }\n    var ts = typesFind.invoke({'w': ws.get(0).id}).data ?? [];\n    var vac = ts.filter(t => { ('' + (t.descriptor ?? '')).contains('Vacation') });\n    widText.setValue(ws.get(0).id);\n    typeText.setValue(vac.size() > 0 ? vac.get(0).id : (ts.size() > 0 ? ts.get(0).id : ''));\n    workerIdxText.setValue('' + n);\n    doneText.setValue('0');\n    true;\n  };\n  var startBatch = function() {\n    if (empty(beforeText.getValue())) { beforeText.setValue('' + total()); }\n    if (empty(widText.getValue()) && !useWorker(0)) { statusText.setValue('No worker found.'); return false; }\n    var ok = 0; var bad = ''; var ids = '' + (idsText.getValue() ?? ''); var tries = 0;\n    while (ok < 10 && started() + ok < 50 && tries < 20) {\n      tries = tries + 1;\n      var d = ('' + (doneText.getValue() ?? '0')).toInt();\n      if (d >= 50) { if (!useWorker(('' + workerIdxText.getValue()).toInt() + 1)) { break; } d = 0; }\n      dayText.setValue(days().get(d));\n      tagText.setValue('TEST:DYN:BULK ' + (started() + ok + 1));\n      var r = startOne.invoke({'w': widText.getValue()});\n      doneText.setValue(('' + (d + 1)).substringBefore('.'));\n      var ev = ((r.businessProcessParameters ?? {:}).overallBusinessProcess ?? {:}).id ?? '';\n      if (!empty(ev)) { ok = ok + 1; ids = ids + ev + ','; idsText.setValue(ids); }\n      else {\n        bad = ('' + json:stringify(r)).substring(0, 200);\n        if (bad.contains('A1015')) { if (!useWorker(('' + workerIdxText.getValue()).toInt() + 1)) { break; } }\n      }\n    }\n    statusText.setValue('Started ' + started() + ' of 50 (this click: ' + ok + '; worker ' + (names().size() > ('' + workerIdxText.getValue()).toInt() ? names().get(('' + workerIdxText.getValue()).toInt()) : 'none left') + ')' + (empty(bad) ? '' : '. Last refusal: ' + bad));\n    true;\n  };\n  var check = function() {\n    var before = ('' + (beforeText.getValue() ?? '0')).toInt();\n    var now = total();\n    checkText.setValue('New records since the start: ' + ('' + (now - before)).substringBefore('.') + ' for ' + started() + ' started events' + ((now - before) >= started() && started() > 0 ? '. Every event got an assignment (with alsoAssign set, expect 2 each).' : '.'));\n  };\n  var cleanUp = function() {\n    var all = ('' + (idsText.getValue() ?? '')).split(',').filter(x => { !empty(x) });\n    var from = ('' + (cleanedText.getValue() ?? '0')).toInt();\n    var c = 0; var k = 0;\n    for (var n = from; n < all.size() && n < from + 10; n = n + 1) {\n      var ev = all.get(n);\n      cancelOne.invoke({'ev': ev}); c = c + 1;\n      evText.setValue(ev);\n      var r = closeLaunch.invoke({'run': '1'});\n      k = k + (r.closed ?? 0);\n    }\n    cleanedText.setValue(('' + (from + c)).substringBefore('.'));\n    checkText.setValue('Clean up: ' + ('' + (from + c)).substringBefore('.') + ' of ' + all.size() + ' events cancelled; this click closed ' + ('' + k).substringBefore('.') + ' assignments.' + (from + c < all.size() ? ' Click Clean up again.' : ''));\n  };\n%>",
+  "endPoints": [
+    {
+      "name": "workerFind",
+      "baseUrlType": "workday-api",
+      "url": "<% 'common/v1/workers?limit=5&search=' + q %>",
+      "authType": "sso",
+      "deferred": true
+    },
+    {
+      "name": "typesFind",
+      "baseUrlType": "workday-api",
+      "url": "<% 'absenceManagement/v1/workers/' + w + '/eligibleAbsenceTypes?limit=100' %>",
+      "authType": "sso",
+      "deferred": true
+    },
+    {
+      "name": "startOne",
+      "baseUrlType": "workday-api",
+      "url": "<% 'absenceManagement/v1/workers/' + w + '/requestTimeOff' %>",
+      "httpMethod": "POST",
+      "authType": "sso",
+      "deferred": true,
+      "onSend": "<% self.data = {:}; self.data.days = [{'date': dayText.getValue() + 'T08:00:00.000Z', 'dailyQuantity': 8, 'comment': tagText.getValue(), 'timeOffType': {'id': typeText.getValue()}}]; self.data.businessProcessParameters = {'action': {'id': 'd9e4223e446c11de98360015c5e6daf6'}, 'comment': tagText.getValue()}; self.data; %>"
+    },
+    {
+      "name": "countAll",
+      "baseUrlType": "app",
+      "url": "<% 'dynResponses?limit=' + lim %>",
+      "authType": "sso",
+      "deferred": true
+    },
+    {
+      "name": "cancelOne",
+      "baseUrlType": "workday-api",
+      "url": "<% 'businessProcess/v1/events/' + ev + '/cancel' %>",
+      "httpMethod": "POST",
+      "authType": "sso",
+      "deferred": true,
+      "onSend": "<% self.data = {:}; self.data.comment = 'TEST:DYN:BULK cleanup'; self.data; %>"
+    },
+    {
+      "name": "closeLaunch",
+      "baseUrlType": "orchestrate",
+      "url": "<% '/DynClose/launch?run=' + run %>",
+      "httpMethod": "POST",
+      "authType": "sso",
+      "deferred": true,
+      "onSend": "<% self.data = {:}; self.data.ev = evText.getValue(); self.data; %>"
+    }
+  ],
+  "presentation": {
+    "pageType": "EDIT",
+    "standardEditButtonsHidden": true,
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.DynFormBulk_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "bulkFieldSet",
+          "title": "<% presentationLabels.DynFormBulk_bulkFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "bulkHelpRichText",
+              "value": "<% presentationLabels.DynFormBulk_bulkHelpRichText_value %>"
+            },
+            {
+              "type": "text",
+              "id": "workerText",
+              "label": "<% presentationLabels.DynFormBulk_workerText_label %>",
+              "value": "<% 'Beth Liu, Carmen Cortes, Logan McNeil, Teresa Serrano, Kevin Lim, Maria Cardoza' %>"
+            },
+            {
+              "type": "text",
+              "id": "workerIdxText",
+              "label": "<% presentationLabels.DynFormBulk_workerIdxText_label %>",
+              "enabled": false,
+              "value": "<% '0' %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "statusText",
+              "label": "<% presentationLabels.DynFormBulk_statusText_label %>",
+              "value": "<% 'Click Start 10 until 50 have started.' %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "checkText",
+              "label": "<% presentationLabels.DynFormBulk_checkText_label %>",
+              "value": "<% '' %>"
+            },
+            {
+              "type": "text",
+              "id": "widText",
+              "label": "<% presentationLabels.DynFormBulk_widText_label %>",
+              "enabled": false,
+              "value": "<% '' %>"
+            },
+            {
+              "type": "text",
+              "id": "typeText",
+              "label": "<% presentationLabels.DynFormBulk_typeText_label %>",
+              "enabled": false,
+              "value": "<% '' %>"
+            },
+            {
+              "type": "text",
+              "id": "beforeText",
+              "label": "<% presentationLabels.DynFormBulk_beforeText_label %>",
+              "enabled": false,
+              "value": "<% '' %>"
+            },
+            {
+              "type": "text",
+              "id": "doneText",
+              "label": "<% presentationLabels.DynFormBulk_doneText_label %>",
+              "enabled": false,
+              "value": "<% '0' %>"
+            },
+            {
+              "type": "text",
+              "id": "dayText",
+              "label": "<% presentationLabels.DynFormBulk_dayText_label %>",
+              "enabled": false,
+              "value": "<% '' %>"
+            },
+            {
+              "type": "text",
+              "id": "tagText",
+              "label": "<% presentationLabels.DynFormBulk_tagText_label %>",
+              "enabled": false,
+              "value": "<% '' %>"
+            },
+            {
+              "type": "text",
+              "id": "evText",
+              "label": "<% presentationLabels.DynFormBulk_evText_label %>",
+              "enabled": false,
+              "value": "<% '' %>"
+            },
+            {
+              "type": "text",
+              "id": "cleanedText",
+              "label": "<% presentationLabels.DynFormBulk_cleanedText_label %>",
+              "enabled": false,
+              "value": "<% '0' %>"
+            },
+            {
+              "type": "textArea",
+              "id": "idsText",
+              "label": "<% presentationLabels.DynFormBulk_idsText_label %>",
+              "enabled": false,
+              "value": "<% queryParams.ids ?? '' %>"
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "id": "bulkButtonsSection",
+          "horizontal": true,
+          "children": [
+            {
+              "type": "section",
+              "id": "startSection",
+              "children": [
+                {
+                  "type": "pageActionButton",
+                  "id": "startButton",
+                  "label": "<% presentationLabels.DynFormBulk_startButton_label %>",
+                  "onClick": "<% startBatch() %>"
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "id": "checkSection",
+              "children": [
+                {
+                  "type": "pageActionButton",
+                  "id": "checkButton",
+                  "label": "<% presentationLabels.DynFormBulk_checkButton_label %>",
+                  "onClick": "<% check() %>"
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "id": "cleanSection",
+              "children": [
+                {
+                  "type": "pageActionButton",
+                  "id": "cleanButton",
+                  "label": "<% presentationLabels.DynFormBulk_cleanButton_label %>",
+                  "onClick": "<% cleanUp() %>"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

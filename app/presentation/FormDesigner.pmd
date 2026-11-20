@@ -1,0 +1,240 @@
+{
+  "id": "FormDesigner",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "include": [
+    "fs.script",
+    "browse.script"
+  ],
+  "endPoints": [
+    {
+      "name": "formRec",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'dynForms?limit=1&code=' + (queryParams.form ?? '').urlEncode() %>",
+      "exclude": "<% empty(queryParams.form) %>"
+    },
+    {
+      "name": "dsFind",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "deferred": true,
+      "url": "<% 'dataSources?limit=100&searchString=' + string:pathEncode(q) %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postForm",
+        "baseUrlType": "app",
+        "url": "dynForms",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% !empty(fs.first(formRec.data ?? []).id) %>",
+        "onSend": "<% formBody() %>"
+      },
+      {
+        "name": "patchForm",
+        "baseUrlType": "app",
+        "url": "<% 'dynForms/' + fs.first(formRec.data ?? []).id %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(fs.first(formRec.data ?? []).id) %>",
+        "onSend": "<% formBody() %>"
+      }
+    ]
+  },
+  "script": "<%\n  var formBody = function() {\n    var b = {:};\n    b.put('code', codeText.getValue());\n    b.put('formName', nameText.getValue());\n    b.put('description', descriptionTextArea.getValue() ?? '');\n    b.put('status', fs.pickOne(statusInstanceList.getValue()));\n    b.put('version', versionNumber.getValue() ?? 1);\n    b.put('dataSources', fs.dsJoin(dataSourcesInstanceList.getValue()));\n    b.put('targetObject', fs.pickOne(targetInstanceList.getValue()));\n    b.put('requestFramework', requestCheckBox.getValue() ?? false);\n    b.put('requestType', requestTypeText.getValue() ?? '');\n    b.put('businessProcess', fs.pickOne(processInstanceList.getValue()));\n    b;\n  };\n%>",
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormDesigner_pageTitle_label %>"
+    },
+    "cancelOverride": {
+      "taskId": "FormStudio"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "cardContainer",
+          "id": "toolsCardContainer",
+          "layout": "grid",
+          "cards": [
+            {
+              "type": "card",
+              "cardId": "Hero",
+              "parameters": "<% {'heroTitle': (presentationLabels.FormDesigner_card_heroTitle_1), 'heroLine': (presentationLabels.FormDesigner_card_heroLine_2), 'heroIcon': 'wd-accent-media-file', 'chipLabel': (presentationLabels.FormDesigner_card_chipLabel_3), 'chipColor': 'orange'} %>"
+            },
+            {
+              "type": "card",
+              "cardId": "StudioNav",
+              "parameters": "<% {'activeStudio': 'FormDesigner', 'studioTitle': 'Form Studio', 'pillFormStudio': (presentationLabels.FormDesigner_card_pillFormStudio_4), 'pillFormDesigner': (presentationLabels.FormDesigner_card_pillFormDesigner_5), 'pillDynFormLookup': (presentationLabels.FormDesigner_card_pillDynFormLookup_6), 'pillDynFormResults': (presentationLabels.FormDesigner_card_pillDynFormResults_7), 'pillHome': (presentationLabels.FormDesigner_card_pillHome_8)} %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormDesigner_aboutFieldSet_title %>",
+          "collapsible": true,
+          "initializeCollapsed": true,
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormDesigner_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "formFieldSet",
+          "title": "<% presentationLabels.FormDesigner_formFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "codeText",
+              "label": "<% presentationLabels.FormDesigner_codeText_label %>",
+              "required": true,
+              "enabled": "<% empty(queryParams.form) %>",
+              "value": "<% fs.first(formRec.data ?? []).code ?? '' %>",
+              "onChange": "<% empty(fs.codeErr(self.getValue())) ? self.clearError() : self.setError(fs.codeErr(self.getValue())) %>"
+            },
+            {
+              "type": "text",
+              "id": "nameText",
+              "label": "<% presentationLabels.FormDesigner_nameText_label %>",
+              "required": true,
+              "value": "<% fs.first(formRec.data ?? []).formName ?? '' %>"
+            },
+            {
+              "type": "textArea",
+              "id": "descriptionTextArea",
+              "label": "<% presentationLabels.FormDesigner_descriptionTextArea_label %>",
+              "value": "<% fs.first(formRec.data ?? []).description ?? '' %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "statusInstanceList",
+              "label": "<% presentationLabels.FormDesigner_statusInstanceList_label %>",
+              "required": true,
+              "instanceList": [
+                {
+                  "id": "draft",
+                  "descriptor": "Draft"
+                },
+                {
+                  "id": "approved",
+                  "descriptor": "Approved"
+                },
+                {
+                  "id": "retired",
+                  "descriptor": "Retired"
+                }
+              ],
+              "selectedValues": "<% fs.one((fs.first(formRec.data ?? []).status ?? 'draft').lowerCase(), 'draft') %>"
+            },
+            {
+              "type": "number",
+              "id": "versionNumber",
+              "label": "<% presentationLabels.FormDesigner_versionNumber_label %>",
+              "value": "<% fs.first(formRec.data ?? []).version ?? 1 %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "sourcesFieldSet",
+          "title": "<% presentationLabels.FormDesigner_sourcesFieldSet_title %>",
+          "children": [
+            {
+              "type": "instanceList",
+              "id": "dataSourcesInstanceList",
+              "label": "<% presentationLabels.FormDesigner_dataSourcesInstanceList_label %>",
+              "multiSelect": true,
+              "values": "<% browse.dsRoot() %>",
+              "selectedValuesAndDescriptors": "<% fs.dsSel(fs.first(formRec.data ?? []).dataSources) %>",
+              "dynamicMonikerLevels": "<% if (browse.dsNoCall(self.promptSelections)) { return browse.dsLevel(self.promptSelections, [], false); } return browse.dsLevel(self.promptSelections, dsFind.invoke({'q': browse.dsLevelQuery(self.promptSelections)}).data, false); %>",
+              "onSearch": "<% empty(event.query) ? [] : fs.dsPick(dsFind.invoke({'q': fs.dsQuery(event.query, sourcesAppOnlyCheckBox.getValue())}).data, false) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "sourcesAppOnlyCheckBox",
+              "label": "<% presentationLabels.FormDesigner_sourcesAppOnlyCheckBox_label %>",
+              "value": "<% false %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "usedFieldSet",
+          "title": "<% presentationLabels.FormDesigner_usedFieldSet_title %>",
+          "children": [
+            {
+              "type": "instanceList",
+              "id": "targetInstanceList",
+              "label": "<% presentationLabels.FormDesigner_targetInstanceList_label %>",
+              "values": "<% browse.folderRoot(fs.targetDefs(), fs.targetRows()) %>",
+              "selectedValuesAndDescriptors": "<% fs.targetSel(fs.first(formRec.data ?? []).targetObject) %>",
+              "dynamicMonikerLevels": "<% browse.folderLevel(fs.targetDefs(), fs.targetRows(), self.promptSelections) %>",
+              "onSearch": "<% browse.folderFind(fs.targetRows(), event.query) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "requestCheckBox",
+              "label": "<% presentationLabels.FormDesigner_requestCheckBox_label %>",
+              "value": "<% fs.first(formRec.data ?? []).requestFramework ?? false %>"
+            },
+            {
+              "type": "text",
+              "id": "requestTypeText",
+              "label": "<% presentationLabels.FormDesigner_requestTypeText_label %>",
+              "value": "<% fs.first(formRec.data ?? []).requestType ?? '' %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "processInstanceList",
+              "label": "<% presentationLabels.FormDesigner_processInstanceList_label %>",
+              "instanceList": [
+                {
+                  "id": "noProcess",
+                  "descriptor": "None"
+                }
+              ],
+              "selectedValues": "<% fs.one(fs.first(formRec.data ?? []).businessProcess, 'noProcess') %>"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

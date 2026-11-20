@@ -1,0 +1,7 @@
+{
+  "id": 1,
+  "name": "UseDynamicForms",
+  "label": "Use: Dynamic Forms",
+  "enabledForPageSecurity": true,
+  "enabledForOrchestrationSecurity": true
+}

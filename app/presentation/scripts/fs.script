@@ -1,0 +1,151 @@
+var first = function(d) {
+  (d ?? []).size() > 0 ? d.get(0) : {:};
+};
+
+var txt = function(v) {
+  empty(v) ? '' : '' + v;
+};
+
+var csv = function(s) {
+  empty(s) ? [] : ('' + s).split(',').map(x => { x.trim() }).filter(x => { !empty(x) });
+};
+
+var dsSel = function(s) {
+  csv(s).map(a => { { 'id': a, 'descriptor': a } });
+};
+
+var dsJoin = function(ids) {
+  empty(ids) ? '' : ids.join(',');
+};
+
+var pickOne = function(v) {
+  empty(v) ? '' : v[0];
+};
+
+var one = function(v, fallback) {
+  empty(v) ? [fallback] : [v];
+};
+
+var countFor = function(rows, code) {
+  var r = (rows ?? []).filter(x => { (x.formCode ?? '') == code });
+  r.size() == 0 ? '0' : '' + (r.get(0)['COUNT(workdayID)'] ?? '0');
+};
+
+var targetName = function(t) {
+  var m = {'app:DynAnswer': 'App: Dyn Answer', 'app:DynForm': 'App: Dyn Form', 'app:DynQuestion': 'App: Dyn Question', 'app:DynResponse': 'App: Dyn Response', 'workday:WORKER': 'Workday: Worker', 'workday:SUPERVISORY_ORGANIZATION': 'Workday: Supervisory Organization', 'workday:POSITION': 'Workday: Position', 'workday:POSITION_RESTRICTIONS': 'Workday: Position Restrictions', 'workday:LOCATION': 'Workday: Location', 'workday:COST_CENTER': 'Workday: Cost Center', 'workday:COMPANY': 'Workday: Company', 'workday:JOB_PROFILE': 'Workday: Job Profile', 'workday:CUSTOM_ORGANIZATION': 'Workday: Custom Organization'};
+  empty(t) ? '' : (m.get(t) ?? t);
+};
+
+var targetFields = function(t) {
+  var m = {'app:DynAnswer': 'responseKey (TEXT), formCode (TEXT), qKey (TEXT), rowNumber (INTEGER), textValue (TEXT), numberValue (DECIMAL), dateValue (DATE), refId (TEXT), refDescriptor (TEXT), organization (SINGLE_INSTANCE to SUPERVISORY_ORGANIZATION), position (SINGLE_INSTANCE to POSITION), worker (SINGLE_INSTANCE to WORKER), secretText (TEXT)', 'app:DynForm': 'code (TEXT), formName (TEXT), version (INTEGER), status (TEXT), description (TEXT), targetObject (TEXT), dataSources (TEXT), requestFramework (BOOLEAN), requestType (TEXT), businessProcess (TEXT), copiedFrom (TEXT), family (TEXT), noFormPolicy (TEXT), failPolicy (TEXT), alsoAssign (TEXT)', 'app:DynQuestion': 'formCode (TEXT), qKey (TEXT), sortOrder (INTEGER), qType (TEXT), qLabel (TEXT), help (TEXT), required (BOOLEAN), qOptions (TEXT), showKey (TEXT), showOp (TEXT), showValue (TEXT), calc (TEXT), lookup (TEXT), prefill (TEXT), regex (TEXT), regexMessage (TEXT), dataSource (TEXT), sourceField (TEXT), targetField (TEXT), params (TEXT), labels (TEXT), confidential (BOOLEAN)', 'app:DynResponse': 'responseKey (TEXT), formCode (TEXT), status (TEXT), subject (SINGLE_INSTANCE to WORKER), parentKey (TEXT), nextForm (TEXT), bpEvent (TEXT), bpTarget (TEXT), family (TEXT), formVersion (INTEGER), orgName (TEXT), alsoExpected (TEXT), bpPerson (TEXT)'};
+  empty(t) ? 'Pick a business object in Design to see its fields here.' :
+    (t.startsWith('workday:') ? 'A Workday object: link an answer to it with a SINGLE_INSTANCE field that targets ' + t.substringAfter('workday:') + '.' :
+      (m.get(t) ?? 'Not an app business object in this build.'));
+};
+
+var requestText = function(f) {
+  (f.requestFramework ?? false) ? ('Yes' + (empty(f.requestType) ? '' : ': ' + f.requestType) + (empty(f.businessProcess) || f.businessProcess == 'noProcess' ? '' : ' (' + f.businessProcess + ')')) : 'No';
+};
+
+var dsCount = function(s) {
+  csv(s).size() == 0 ? 'None' : csv(s).join(', ');
+};
+
+var dsList = function(res) {
+  (res ?? []).map(x => { { 'id': x.alias ?? x.id, 'descriptor': (x.descriptor ?? '') + ' (' + (x.alias ?? '') + ')' } });
+};
+
+var dsIdList = function(res) {
+  (res ?? []).map(x => { { 'id': x.id, 'descriptor': x.alias ?? x.id } });
+};
+
+var fieldList = function(res) {
+  (res ?? []).map(x => { { 'id': x.alias ?? x.id, 'descriptor': (x.alias ?? '') + ' (' + (x.type ?? '') + ') ' + (x.descriptor ?? '') } });
+};
+
+var dsQuery = function(q, appOnly) {
+  var s = ('' + (q ?? '')).replace('\'', '').replace('\\', '').trim();
+  (appOnly == true) ? 'developertoolkitappv1_kwswrv ' + s : s;
+};
+
+var dsPick = function(res, useId) {
+  (res ?? []).map(x => { { 'id': (useId ? x.id : x.alias), 'descriptor': (x.alias ?? '') + ' · ' + (empty(x.primaryBusinessObject) ? '' : (x.primaryBusinessObject.descriptor ?? '')) } });
+};
+
+var typeCode = function(t) {
+  ('' + (t ?? '')).lowerCase().substringBefore(' ').substringBefore('-') + 'Type';
+};
+
+var relOf = function(x) {
+  empty(x.relatedBusinessObject) ? '' : ('' + (x.relatedBusinessObject.descriptor ?? ''));
+};
+
+var fieldPick = function(res, types, rel) {
+  var r = ('' + (rel ?? '')).lowerCase().trim();
+  (res ?? []).filter(x => { (empty(types) || types.contains(typeCode(x.type))) && (empty(r) || relOf(x).lowerCase().contains(r)) })
+    .map(x => { { 'id': x.alias ?? x.id, 'descriptor': (x.alias ?? '') + ' · ' + (x.type ?? '') + (empty(relOf(x)) ? '' : ' of ' + relOf(x)) } });
+};
+
+var targets = function(kind) {
+  var all = [{'id': 'app:DynAnswer', 'descriptor': 'App: Dyn Answer'}, {'id': 'app:DynForm', 'descriptor': 'App: Dyn Form'}, {'id': 'app:DynQuestion', 'descriptor': 'App: Dyn Question'}, {'id': 'app:DynResponse', 'descriptor': 'App: Dyn Response'}, {'id': 'workday:WORKER', 'descriptor': 'Workday: Worker'}, {'id': 'workday:SUPERVISORY_ORGANIZATION', 'descriptor': 'Workday: Supervisory Organization'}, {'id': 'workday:POSITION', 'descriptor': 'Workday: Position'}, {'id': 'workday:POSITION_RESTRICTIONS', 'descriptor': 'Workday: Position Restrictions'}, {'id': 'workday:LOCATION', 'descriptor': 'Workday: Location'}, {'id': 'workday:COST_CENTER', 'descriptor': 'Workday: Cost Center'}, {'id': 'workday:COMPANY', 'descriptor': 'Workday: Company'}, {'id': 'workday:JOB_PROFILE', 'descriptor': 'Workday: Job Profile'}, {'id': 'workday:CUSTOM_ORGANIZATION', 'descriptor': 'Workday: Custom Organization'}];
+  var k = empty(kind) ? 'all' : kind[0];
+  all.filter(t => { k == 'all' || (k == 'workday' ? t.id.startsWith('workday:') : !t.id.startsWith('workday:')) });
+};
+
+var tRow = function(id, desc) {
+  var m = {:};
+  m.put('id', id);
+  m.put('descriptor', desc);
+  m.put('search', (desc + ' ' + id).lowerCase());
+  m.put('wd', id.startsWith('workday:'));
+  m.put('app', !id.startsWith('workday:'));
+  m;
+};
+
+var targetRows = function() {
+  [{'id': 'app:DynAnswer', 'descriptor': 'App: Dyn Answer'}, {'id': 'app:DynForm', 'descriptor': 'App: Dyn Form'}, {'id': 'app:DynQuestion', 'descriptor': 'App: Dyn Question'}, {'id': 'app:DynResponse', 'descriptor': 'App: Dyn Response'}, {'id': 'workday:WORKER', 'descriptor': 'Workday: Worker'}, {'id': 'workday:SUPERVISORY_ORGANIZATION', 'descriptor': 'Workday: Supervisory Organization'}, {'id': 'workday:POSITION', 'descriptor': 'Workday: Position'}, {'id': 'workday:POSITION_RESTRICTIONS', 'descriptor': 'Workday: Position Restrictions'}, {'id': 'workday:LOCATION', 'descriptor': 'Workday: Location'}, {'id': 'workday:COST_CENTER', 'descriptor': 'Workday: Cost Center'}, {'id': 'workday:COMPANY', 'descriptor': 'Workday: Company'}, {'id': 'workday:JOB_PROFILE', 'descriptor': 'Workday: Job Profile'}, {'id': 'workday:CUSTOM_ORGANIZATION', 'descriptor': 'Workday: Custom Organization'}].map(t => { tRow(t.id, t.descriptor) });
+};
+
+var tDef = function(id, label, kind, key) {
+  var m = {:};
+  m.put('id', id);
+  m.put('label', label);
+  m.put('kind', kind);
+  m.put('key', key);
+  m;
+};
+
+var targetDefs = function() {
+  [tDef('appObjects', 'This app\'s business objects', 'flag', 'app'), tDef('workdayObjects', 'Workday objects', 'flag', 'wd'), tDef('az', 'A to Z', 'az', '')];
+};
+
+var targetSel = function(t) {
+  empty(t) ? [] : [tRow(t, targetName(t))];
+};
+
+var targetFind = function(q, kind) {
+  var s = ('' + (q ?? '')).lowerCase().trim();
+  targets(kind).filter(t => { empty(s) || ('' + t.descriptor).lowerCase().contains(s) || ('' + t.id).lowerCase().contains(s) });
+};
+
+var copyText = function(dsEntries, fieldId) {
+  var ds = empty(dsEntries) ? '' : ('' + (dsEntries[0].descriptor ?? '')).substringBefore(' · ');
+  empty(fieldId) ? (empty(ds) ? 'Pick a data source, then a field.' : 'Data source: ' + ds + '. Now pick a field.') : 'Data source: ' + ds + '   Source field: ' + fieldId[0];
+};
+
+var codeErr = function(v) {
+  var s = txt(v);
+  empty(s) ? '' : (s.contains(' ') ? 'No spaces: use colons, e.g. HR:LEAVE:REQUEST.' : (s.upperCase() != s ? 'Use capital letters, e.g. HR:LEAVE:REQUEST.' : ''));
+};
+
+var rxTest = function(rx, sample) {
+  empty(rx) ? 'Type a regular expression and a sample answer.' : (validate:match(rx, txt(sample)) ? 'Matches: this answer would be accepted.' : 'Does not match: the fill page would show the question message.');
+};
+
+{
+  "first": first, "txt": txt, "csv": csv, "dsSel": dsSel, "dsJoin": dsJoin, "pickOne": pickOne, "one": one,
+  "countFor": countFor, "targetName": targetName, "targetFields": targetFields, "requestText": requestText,
+  "dsCount": dsCount, "dsList": dsList, "dsIdList": dsIdList, "fieldList": fieldList, "dsQuery": dsQuery, "dsPick": dsPick, "typeCode": typeCode, "relOf": relOf,
+  "fieldPick": fieldPick, "targets": targets, "tRow": tRow, "targetRows": targetRows, "tDef": tDef, "targetDefs": targetDefs, "targetSel": targetSel, "targetFind": targetFind, "copyText": copyText,
+  "codeErr": codeErr, "rxTest": rxTest
+}

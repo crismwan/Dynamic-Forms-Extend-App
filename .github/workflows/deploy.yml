@@ -1,0 +1,290 @@
+name: Check and deploy
+
+# Every push: static checks and a zip of the app (download it from the run's Artifacts to upload by hand).
+# Push to main (app/ changed) or Run workflow: upload to App Hub and deploy to the tenant, once the repo settings exist:
+#   Secrets  WD_CLIENT_ID, WD_CLIENT_SECRET (system user), WD_ORG_UUID, WD_DEV_TOKEN (tenant token, 1 h), WD_WCP_TOKEN (8 h)
+#   Variables WD_ACCOUNT (account short ID), WD_TENANT (tenant alias), WD_TENANT_URL (https://<host>/<tenant>).
+#   They default to the ECO-COMS account and dev tenant (vmzvxm, ubc_wcpdev2), the same as the ECO-COMS repo uses;
+#   set the variables only to deploy somewhere else.
+#   Optional variables WD_ORG_NAME, WD_ENV_TYPE (default WCPDEV), WD_REGION (default scylla:us)
+# The wdcli patches in .github/patches are the ones that make CI deploys work for ECO-COMS, with the account values
+# read from these settings instead of hard-coded.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "deploy = upload + deploy; create = register this app in App Hub once; bulk = bulk test, starts N time-off events and cancels them (tools/bulk_events.js)"
+        type: choice
+        options: [deploy, create, bulk]
+        default: deploy
+      app_dir:
+        description: "create and deploy: the app folder"
+        type: string
+        default: "app"
+      app_name:
+        description: "create only: name for the new app (its reference ID is made from it, e.g. extendkit_cm -> extendkit_cm_<account>)"
+        type: string
+        default: "dynamicforms"
+
+env:
+  WDCLI_VERSION: "1.9.43"
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Static checks
+        run: node tools/check.js
+      - name: The page builders reproduce the committed pages
+        run: python3 tools/build_app.py && python3 tools/build_browse.py && python3 tools/build_forms.py && python3 tools/build_studio.py && python3 tools/build_labels.py && git diff --exit-code -- app/presentation app/model app/orchestration
+      - name: Zip the app
+        run: cd app && zip -qr ../dynamic-forms-app.zip . && cd .. && unzip -l dynamic-forms-app.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dynamic-forms-app
+          path: dynamic-forms-app.zip
+
+  deploy:
+    needs: check
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      WD_ACCOUNT: ${{ vars.WD_ACCOUNT || 'kwswrv' }}
+      WD_TENANT: ${{ vars.WD_TENANT || 'kpmcxyjpdr_extdev' }}
+      WD_TENANT_URL: ${{ vars.WD_TENANT_URL || 'personal-dev-tenant' }}
+      # token: sign in with the developer's copied tokens (personal accounts, 2026-11-16: their API clients can't
+      # sign CI in). system-user: the old enterprise route with WD_CLIENT_ID/WD_CLIENT_SECRET/WD_ORG_UUID.
+      WD_LOGIN: ${{ vars.WD_LOGIN || 'token' }}
+      WD_ORG_NAME: ${{ vars.WD_ORG_NAME || 'The University Of British Columbia' }}
+      WD_ENV_TYPE: ${{ vars.WD_ENV_TYPE || 'WCPDEV' }}
+      WD_REGION: ${{ vars.WD_REGION || 'scylla:us' }}
+      ACTION: ${{ github.event.inputs.action || 'deploy' }}
+      APP_DIR: ${{ github.event.inputs.app_dir || 'app' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Settings present?
+        id: ready
+        env:
+          HAS_CLIENT: ${{ secrets.WD_CLIENT_ID != '' && secrets.WD_CLIENT_SECRET != '' && secrets.WD_ORG_UUID != '' }}
+          HAS_TOKENS: ${{ secrets.WD_DEV_TOKEN != '' && secrets.WD_WCP_TOKEN != '' }}
+        run: |
+          missing=""
+          [ "${WD_LOGIN}" = "token" ] || [ "${HAS_CLIENT}" = "true" ] || missing="${missing} WD_CLIENT_ID/WD_CLIENT_SECRET/WD_ORG_UUID (secrets)"
+          [ -n "${WD_ACCOUNT}" ] || missing="${missing} WD_ACCOUNT (variable)"
+          if [ "${ACTION}" = "deploy" ]; then
+            [ "${HAS_TOKENS}" = "true" ] || missing="${missing} WD_DEV_TOKEN/WD_WCP_TOKEN (secrets)"
+            [ -n "${WD_TENANT}" ] || missing="${missing} WD_TENANT (variable)"
+            [ -n "${WD_TENANT_URL}" ] || missing="${missing} WD_TENANT_URL (variable)"
+            if [ "${{ github.event_name }}" = "push" ] && git diff --quiet HEAD~1 HEAD -- app; then
+              echo "Nothing under app/ changed; no deploy needed."; echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            if grep -q PLACEHOLDER app/appManifest.json; then
+              missing="${missing} a real app (run the workflow with action=create, then tools/set_app.py)"
+            fi
+          fi
+          if [ -n "${missing}" ]; then
+            echo "::warning::Skipping ${ACTION}: missing${missing}. See README.md."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install wdcli
+        if: steps.ready.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # wdcli is kept as a release asset of this repo (tag wdcli-v<version>), as ECO-COMS does.
+          mkdir -p /opt/wdcli-download /opt/wdcli
+          gh release download "wdcli-v${WDCLI_VERSION}" --repo "${{ github.repository }}" \
+            --pattern "wdcli-installer-linux-x64-*.tar.gz" --dir /opt/wdcli-download
+          tar xzf /opt/wdcli-download/wdcli-installer-linux-x64-*.tar.gz -C /opt/wdcli
+          WDCLI_BIN=$(find /opt/wdcli -name wdcli -type f | head -1)
+          chmod +x "${WDCLI_BIN}"
+          echo "$(dirname "${WDCLI_BIN}")" >> "$GITHUB_PATH"
+
+      - name: Sign in with the developer's tokens (WD_LOGIN=token)
+        if: steps.ready.outputs.go == 'true' && env.WD_LOGIN == 'token'
+        env:
+          WD_DEV_TOKEN: ${{ secrets.WD_DEV_TOKEN }}
+          WD_WCP_TOKEN: ${{ secrets.WD_WCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          T="$(printf '%s' "${WD_DEV_TOKEN}" | tr -d '[:space:]\"')"; W="$(printf '%s' "${WD_WCP_TOKEN}" | tr -d '[:space:]\"')"
+          python3 - "$T" "$W" <<'PY'
+          import base64, json, sys, time
+          for name, tok in (("WD_DEV_TOKEN", sys.argv[1]), ("WD_WCP_TOKEN", sys.argv[2])):
+              try:
+                  part = tok.split(".")[1]; exp = json.loads(base64.urlsafe_b64decode(part + "=" * (-len(part) % 4))).get("exp")
+              except Exception:
+                  print(f"{name}: could not read its expiry"); continue
+              left = int(exp) - int(time.time())
+              print(f"{name}: " + (f"expired {-left // 60} min ago" if left < 0 else f"valid for {left // 60} min"))
+              if left < 0: print("Refresh both tokens (CLAUDE.md: Deploy decision guide, route 1)."); sys.exit(1)
+          PY
+          mkdir -p "${HOME}/.config/@workday/wdcli"
+          jq -n --arg acc "${WD_ACCOUNT}" --arg ten "${WD_TENANT}" --arg t "$T" --arg w "$W" \
+            '{defaultAccountShortId: $acc, defaultTenantAlias: $ten, loginEnvironment: "personal", wcpAccessToken: $w, wcpTenantAccessToken: {($ten): $t}}' \
+            > "${HOME}/.config/@workday/wdcli/config.json"
+          echo "WDCLI_ENVIRONMENT=personal" >> "$GITHUB_ENV"
+          echo "WDCLI_ACCOUNT=${WD_ACCOUNT}" >> "$GITHUB_ENV"
+          echo "::add-mask::$W"; echo "WDCLI_AUTH=$W" >> "$GITHUB_ENV"
+          wdcli whoami 2>&1 | grep -viE "token|bearer" || true
+
+      - name: Sign in as the system user
+        if: steps.ready.outputs.go == 'true' && env.WD_LOGIN != 'token'
+        env:
+          WDCLI_CLIENT_ID: ${{ secrets.WD_CLIENT_ID }}
+          WDCLI_CLIENT_SECRET: ${{ secrets.WD_CLIENT_SECRET }}
+          WD_ORG_UUID: ${{ secrets.WD_ORG_UUID }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}/.config/@workday/wdcli"
+          jq -n --arg org "${WD_ORG_UUID}" --arg acc "${WD_ACCOUNT}" --arg ten "${WD_TENANT:-}" \
+            --arg id "${WDCLI_CLIENT_ID}" --arg secret "${WDCLI_CLIENT_SECRET}" \
+            '{organizationUuid: $org, defaultAccountShortId: $acc, defaultTenantAlias: $ten, clientId: $id, clientSecret: $secret}' \
+            > "${HOME}/.config/@workday/wdcli/config.json"
+          wdcli auth login --system-user
+          wdcli whoami
+
+      - name: Create the app in App Hub (action=create)
+        if: steps.ready.outputs.go == 'true' && env.ACTION == 'create'
+        run: |
+          set -uo pipefail
+          # Registers app/ as a new App Hub app with its own reference ID. Then run locally:
+          #   python3 tools/set_app.py <referenceId> <appId>   and push.
+          wdcli app copy "${APP_DIR}" /tmp/created -n "${{ inputs.app_name || 'dynamicforms' }}" --app-type EXTEND -a "${WD_ACCOUNT}" --ci -f json 2>&1 | tee /tmp/create.txt
+          code=${PIPESTATUS[0]}
+          REF=$(jq -r '.referenceId // empty' /tmp/created/appManifest.json 2>/dev/null)
+          # The copied manifest's "id" is the new app's VERSION id; the app id comes from wdcli app info (2026-11-14).
+          ID=""
+          [ -n "${REF}" ] && ID=$(wdcli app info "${REF}" --ci -f json 2>/dev/null | jq -r '.appId // empty')
+          {
+            echo "## Create app (exit ${code})"
+            if [ -n "${REF}" ]; then echo "Reference ID: \`${REF}\`, app ID: \`${ID}\`"; echo; echo "Next: \`python3 tools/set_app.py ${REF} ${ID}\`, commit, push."; fi
+            echo '```'; cat /tmp/create.txt; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit ${code}
+
+      - name: Upload to App Hub
+        if: steps.ready.outputs.go == 'true' && env.ACTION == 'deploy'
+        run: |
+          set -uo pipefail
+          # The App Hub app list as of now, for the Installed Apps page's cleanup hints (read only).
+          if [ "${APP_DIR}" != "app" ]; then echo "Deploying ${APP_DIR}"; elif wdcli app list -a "${WD_ACCOUNT}" --ci -f json > /tmp/applist.json 2>/dev/null; then
+            node tools/build_apphub.js /tmp/applist.json "${WD_ACCOUNT}" || node tools/build_apphub.js --empty
+          else echo "App Hub list not read; the page shows no App Hub comparison"; fi
+          CHECK_APP="${APP_DIR}" node tools/check.js --deploy
+          # wdcli reports a refused upload only as "Unable to upload app. Error". Make it print App Hub's response
+          # (status + body), with anything token-like removed (2026-11-06: an orchestration rename was refused).
+          IDX=$(find /opt/wdcli -path "*lib/commands/index.js" | head -1)
+          if [ -n "${IDX}" ]; then
+            IDX="${IDX}" node -e '
+              const fs = require("fs"); const p = process.env.IDX; let s = fs.readFileSync(p, "utf8");
+              const a = "new Error(`Unable to upload app. ${O.getErrorMessage(r)}`";
+              const b = "new Error(`Unable to upload app. ${O.getErrorMessage(r)} ${(()=>{try{const x=r||{},y=x.response||(x.cause||{}).response||{};return JSON.stringify({status:y.status,data:y.data,code:x.code,message:x.message,cause:String(x.cause||\"\"),type:String((x&&x.constructor&&x.constructor.name)||typeof x),raw:String(x).slice(0,400),props:(()=>{const o={};for(const k of Object.getOwnPropertyNames(x||{})){if(k!==\"stack\"){try{o[k]=JSON.parse(JSON.stringify(x[k]))}catch(e){o[k]=String(x[k])}}}return o})()}).replace(/(Bearer\\s+|eyJ)[A-Za-z0-9._-]{8,}/g,\"[redacted]\")}catch(e){return \"\"}})()}`";
+              if (s.includes(a)) { fs.writeFileSync(p, s.replace(a, b)); console.log("wdcli: upload errors print App Hub response"); }
+              else console.log("wdcli: upload error patch not applied (text not found)");'
+          fi
+          set +e   # GitHub runs bash with -e: keep going after a failed upload so its build errors get printed
+          cd "${APP_DIR}"
+          echo "." | wdcli app upload --fail-on-build-timeout 2>&1 | grep -viE "authorization|token|secret|bearer|cookie" | tee /tmp/upload.txt
+          code=${PIPESTATUS[1]}
+          if [ "${code}" -ne 0 ]; then
+            BUILD_ID=$(grep -oE 'builds/[0-9a-f]{32}' /tmp/upload.txt | head -1 | cut -d/ -f2) || true
+            # No build ID in the output (upload refused before a build): use the app's latest build instead.
+            if [ -z "${BUILD_ID}" ]; then
+              wdcli app builds "$(jq -r .referenceId appManifest.json)" --latest-version --ci -f json > /tmp/builds.json 2>&1 || true
+              echo "--- recent builds ---"; head -c 3000 /tmp/builds.json; echo
+              BUILD_ID=$(grep -oE '[0-9a-f]{32}' /tmp/builds.json | head -1) || true
+            fi
+            [ -n "${BUILD_ID}" ] && wdcli app builds logs "${BUILD_ID}" --ci -f json > /tmp/build-log.json 2>&1 || true
+            echo "--- app info (the manifest id must be the app ID, not a version ID) ---"
+            wdcli app info "$(jq -r .referenceId appManifest.json)" --ci -f json 2>&1 | head -c 2000; echo
+            echo "--- build ${BUILD_ID:-?} log (ERROR lines) ---"; grep -iE 'error|fail' /tmp/build-log.json 2>/dev/null | head -60 || true
+            { echo "## Upload failed (exit ${code})"; echo '```'; cat /tmp/upload.txt; grep -i error /tmp/build-log.json 2>/dev/null | head -60; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            exit "${code}"
+          fi
+          VERSION_ID=$(grep -oE 'for version [0-9a-f]{32}' /tmp/upload.txt | grep -oE '[0-9a-f]{32}' | head -1) || true
+          [ -n "${VERSION_ID}" ] || VERSION_ID=$(grep -oE '"versionId"[[:space:]]*:[[:space:]]*"[0-9a-f]{32}"' /tmp/upload.txt | grep -oE '[0-9a-f]{32}' | head -1) || true
+          [ -n "${VERSION_ID}" ] || { echo "Could not read the version ID from the upload output"; exit 1; }
+          echo "VERSION_ID=${VERSION_ID}" >> "$GITHUB_ENV"
+          echo "APP_REF=$(jq -r .referenceId appManifest.json)" >> "$GITHUB_ENV"
+          echo "APP_UUID=$(jq -r .id appManifest.json)" >> "$GITHUB_ENV"
+          echo "APP_NAME=$(jq -r .name appManifest.json)" >> "$GITHUB_ENV"
+
+      - name: Deploy to the tenant (WD_LOGIN=token)
+        if: steps.ready.outputs.go == 'true' && env.ACTION == 'deploy' && env.WD_LOGIN == 'token'
+        run: |
+          set +e
+          wdcli app deploy "${APP_REF}" --tenant-alias "${WD_TENANT}" --latest-version --ci 2>&1 | grep -viE "bearer|eyJ" | tee /tmp/deploy.txt
+          code=${PIPESTATUS[0]}
+          { echo "## Deploy (exit ${code})"; echo '```'; cat /tmp/deploy.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "${code}"
+
+      - name: Deploy to the tenant
+        if: steps.ready.outputs.go == 'true' && env.ACTION == 'deploy' && env.WD_LOGIN != 'token'
+        env:
+          WD_DEV_TOKEN: ${{ secrets.WD_DEV_TOKEN }}
+          WD_WCP_TOKEN: ${{ secrets.WD_WCP_TOKEN }}
+          WD_ORG_UUID: ${{ secrets.WD_ORG_UUID }}
+        run: |
+          set -euo pipefail
+          # Tokens pasted from config.json can carry quotes or a newline; a JWT has neither.
+          WD_DEV_TOKEN="$(printf '%s' "${WD_DEV_TOKEN}" | tr -d '[:space:]\"')"
+          WD_WCP_TOKEN="$(printf '%s' "${WD_WCP_TOKEN}" | tr -d '[:space:]\"')"
+          python3 - <<'PY'
+          import base64, json, os, sys, time
+          for name in ("WD_DEV_TOKEN", "WD_WCP_TOKEN"):
+              tok = os.environ[name].strip().strip('"')
+              try:
+                  part = tok.split(".")[1]; exp = json.loads(base64.urlsafe_b64decode(part + "=" * (-len(part) % 4))).get("exp")
+              except Exception:
+                  print(f"{name}: could not read its expiry"); continue
+              left = int(exp) - int(time.time())
+              print(f"{name}: " + (f"expired {-left // 60} min ago" if left < 0 else f"valid for {left // 60} min"))
+              if left < 0:
+                  print("Refresh both tokens (README: Refreshing tokens), then run the workflow again."); sys.exit(1)
+          PY
+          # The upload signed in as the system user; the deploy needs the developer's tokens.
+          CFG="${HOME}/.config/@workday/wdcli/config.json"
+          jq --arg ten "${WD_TENANT}" --arg t "${WD_DEV_TOKEN}" --arg w "${WD_WCP_TOKEN}" --arg org "${WD_ORG_UUID}" \
+            '.wcpTenantAccessToken = {($ten): $t} | .wcpAccessToken = $w | .organizationUuid = $org | .defaultTenantAlias = $ten' \
+            "${CFG}" > /tmp/cfg.json && mv /tmp/cfg.json "${CFG}"
+          export METERED=$(find /opt/wdcli -name "metered-command-*.js" | head -1)
+          export CMDS="$(dirname "${METERED}")/commands/index.js"
+          export WCP_SDK=$(find /opt/wdcli -path "*/wcp-sdk/dist/index.js" | head -1)
+          for n in 1 2 3 4 5 6 7 8 9 10 11; do node ".github/patches/patch${n}.js"; done
+          export WDCLI_TENANT_TOKEN="${WD_DEV_TOKEN}" WDCLI_ORG_UUID="${WD_ORG_UUID}" WDCLI_APP_UUID="${APP_UUID}" WDCLI_VERSION_ID="${VERSION_ID}"
+          set +e
+          wdcli app deploy "${APP_REF}" --tenant-alias "${WD_TENANT}" 2>&1 | tee /tmp/deploy.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          { echo "## Deploy (exit ${code})"; echo '```'; cat /tmp/deploy.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "${code}"
+
+  bulk:
+    # Dynamic Forms acceptance item 9: start N time-off events, count the form assignments, cancel and close them.
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'bulk'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Start, check and clean up bulk events
+        env:
+          WD_TOKEN: ${{ secrets.WD_DEV_TOKEN }}
+          N: ${{ inputs.query || '50' }}
+        run: node tools/bulk_events.js | tee /tmp/bulk.txt; { echo '```'; cat /tmp/bulk.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

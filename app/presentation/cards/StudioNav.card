@@ -1,0 +1,51 @@
+{
+  "id": "StudioNav",
+  "parameters": [
+    "activeStudio",
+    "studioTitle",
+    "pillFormStudio",
+    "pillFormDesigner",
+    "pillDynFormLookup",
+    "pillDynFormResults",
+    "pillHome"
+  ],
+  "header": {
+    "title": "<% studioTitle %>",
+    "icon": "wd-accent-media-file"
+  },
+  "body": {
+    "type": "pillCard",
+    "pills": [
+      {
+        "label": "<% activeStudio == \"FormStudio\" ? \"✓ \" + pillFormStudio : pillFormStudio %>",
+        "taskReference": {
+          "taskId": "FormStudio"
+        }
+      },
+      {
+        "label": "<% activeStudio == \"FormDesigner\" ? \"✓ \" + pillFormDesigner : pillFormDesigner %>",
+        "taskReference": {
+          "taskId": "FormDesigner"
+        }
+      },
+      {
+        "label": "<% activeStudio == \"DynFormLookup\" ? \"✓ \" + pillDynFormLookup : pillDynFormLookup %>",
+        "taskReference": {
+          "taskId": "DynFormLookup"
+        }
+      },
+      {
+        "label": "<% activeStudio == \"DynFormResults\" ? \"✓ \" + pillDynFormResults : pillDynFormResults %>",
+        "taskReference": {
+          "taskId": "DynFormResults"
+        }
+      },
+      {
+        "label": "<% activeStudio == \"Home\" ? \"✓ \" + pillHome : pillHome %>",
+        "taskReference": {
+          "taskId": "Home"
+        }
+      }
+    ]
+  }
+}

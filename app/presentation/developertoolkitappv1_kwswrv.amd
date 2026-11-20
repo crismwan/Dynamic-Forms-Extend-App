@@ -1,0 +1,325 @@
+{
+  "applicationId": "developertoolkitappv1_kwswrv",
+  "appProperties": [],
+  "flowDefinitions": [
+    {
+      "id": "dynFormFillFlow",
+      "flowSteps": [
+        {
+          "id": "dynFormFillFlowStart",
+          "taskId": "DynFormFill",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "dynFormFillFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "dynFormFillFlowEnd",
+          "taskId": "DynFormResults",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "dynFormBigLoopFlow",
+      "flowSteps": [
+        {
+          "id": "dynFormBigLoopFlowStart",
+          "taskId": "DynFormBigLoop",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "dynFormBigLoopFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "dynFormBigLoopFlowEnd",
+          "taskId": "DynFormResults",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "dynFormSeedFlow",
+      "flowSteps": [
+        {
+          "id": "dynFormSeedFlowStart",
+          "taskId": "DynFormSeed",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "dynFormSeedFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "dynFormSeedFlowEnd",
+          "taskId": "DynFormResults",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "dynFormLookupFlow",
+      "flowSteps": [
+        {
+          "id": "dynFormLookupFlowStart",
+          "taskId": "DynFormLookup",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "dynFormLookupFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "dynFormLookupFlowEnd",
+          "taskId": "DynFormResults",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "dynFormCopyFlow",
+      "flowSteps": [
+        {
+          "id": "dynFormCopyFlowStart",
+          "taskId": "DynFormCopy",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "dynFormCopyFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "dynFormCopyFlowEnd",
+          "taskId": "DynFormResults",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "dynMyFillFlow",
+      "flowSteps": [
+        {
+          "id": "dynMyFillFlowStart",
+          "taskId": "DynMyFill",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "dynMyFillFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "dynMyFillFlowEnd",
+          "taskId": "DynMyForms",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "formDesignerFlow",
+      "flowSteps": [
+        {
+          "id": "formDesignerFlowStart",
+          "taskId": "FormDesigner",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "formDesignerFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "formDesignerFlowEnd",
+          "taskId": "FormStudio",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "formQuestionsFlow",
+      "flowSteps": [
+        {
+          "id": "formQuestionsFlowStart",
+          "taskId": "FormQuestions",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "formQuestionsFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "formQuestionsFlowEnd",
+          "taskId": "FormStudio",
+          "endsFlow": true
+        }
+      ]
+    }
+  ],
+  "dataProviders": [
+    {
+      "key": "workday-wql",
+      "value": "<% `{{apiGatewayEndpoint}}/wql/v1/` %>"
+    },
+    {
+      "key": "workday-api",
+      "value": "<% `{{apiGatewayEndpoint}}/` %>"
+    },
+    {
+      "key": "workday-graph",
+      "value": "<% `{{apiGatewayEndpoint}}/graphql/v1` %>"
+    },
+    {
+      "key": "app",
+      "value": "<% `{{apiGatewayEndpoint}}/apps/{{site.applicationId}}/v1/` %>"
+    },
+    {
+      "key": "orchestrate",
+      "value": "<% `{{apiGatewayEndpoint}}/orchestrate/v1/apps/{{site.applicationId}}/orchestrations` %>"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "Home",
+      "routingPattern": "/",
+      "page": {
+        "id": "Home"
+      }
+    },
+    {
+      "id": "ErrorPage",
+      "routingPattern": "/errorPage",
+      "page": {
+        "id": "ErrorPage"
+      }
+    },
+    {
+      "id": "DynFormFill",
+      "routingPattern": "/dynFormFill",
+      "page": {
+        "id": "DynFormFill"
+      }
+    },
+    {
+      "id": "DynFormBigLoop",
+      "routingPattern": "/dynFormBigLoop",
+      "page": {
+        "id": "DynFormBigLoop"
+      }
+    },
+    {
+      "id": "DynFormSeed",
+      "routingPattern": "/dynFormSeed",
+      "page": {
+        "id": "DynFormSeed"
+      }
+    },
+    {
+      "id": "DynFormResults",
+      "routingPattern": "/dynFormResults",
+      "page": {
+        "id": "DynFormResults"
+      }
+    },
+    {
+      "id": "DynFormLookup",
+      "routingPattern": "/dynFormLookup",
+      "page": {
+        "id": "DynFormLookup"
+      }
+    },
+    {
+      "id": "FormStudio",
+      "routingPattern": "/formStudio",
+      "page": {
+        "id": "FormStudio"
+      }
+    },
+    {
+      "id": "FormDesigner",
+      "routingPattern": "/formDesigner",
+      "page": {
+        "id": "FormDesigner"
+      }
+    },
+    {
+      "id": "FormQuestions",
+      "routingPattern": "/formQuestions",
+      "page": {
+        "id": "FormQuestions"
+      }
+    },
+    {
+      "id": "DynFormResultsRecord",
+      "routingPattern": "/dynFormResults/{taskObjectId}",
+      "page": {
+        "id": "DynFormResults"
+      }
+    },
+    {
+      "id": "DynFormNext",
+      "routingPattern": "/dynFormNext/{taskObjectId}",
+      "page": {
+        "id": "DynFormNext"
+      }
+    },
+    {
+      "id": "FormOpen",
+      "routingPattern": "/formOpen/{taskObjectId}",
+      "page": {
+        "id": "FormOpen"
+      }
+    },
+    {
+      "id": "DynFormCopy",
+      "routingPattern": "/dynFormCopy",
+      "page": {
+        "id": "DynFormCopy"
+      }
+    },
+    {
+      "id": "DynFormBulk",
+      "routingPattern": "/dynFormBulk",
+      "page": {
+        "id": "DynFormBulk"
+      }
+    },
+    {
+      "id": "DynMyForms",
+      "routingPattern": "/dynMyForms",
+      "page": {
+        "id": "DynMyForms"
+      }
+    },
+    {
+      "id": "DynMyFill",
+      "routingPattern": "/dynMyFill",
+      "page": {
+        "id": "DynMyFill"
+      }
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "id": 4,
+  "name": "DynQuestion",
+  "label": "Dyn Question",
+  "defaultSecurityDomains": [
+    "UseDynamicForms"
+  ],
+  "defaultCollection": {
+    "name": "dynQuestions",
+    "label": "All Dyn Questions"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "formCode",
+      "label": "Form Code",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 2,
+      "name": "qKey",
+      "label": "Question Key",
+      "type": "TEXT",
+      "useForDisplay": true
+    },
+    {
+      "id": 3,
+      "name": "sortOrder",
+      "label": "Sort Order",
+      "type": "INTEGER"
+    },
+    {
+      "id": 4,
+      "name": "qType",
+      "label": "Question Type",
+      "type": "TEXT"
+    },
+    {
+      "id": 5,
+      "name": "qLabel",
+      "label": "Question Label",
+      "type": "TEXT"
+    },
+    {
+      "id": 6,
+      "name": "help",
+      "label": "Help",
+      "type": "TEXT"
+    },
+    {
+      "id": 7,
+      "name": "required",
+      "label": "Required",
+      "type": "BOOLEAN"
+    },
+    {
+      "id": 8,
+      "name": "qOptions",
+      "label": "Options",
+      "type": "TEXT"
+    },
+    {
+      "id": 9,
+      "name": "showKey",
+      "label": "Show When Key",
+      "type": "TEXT"
+    },
+    {
+      "id": 10,
+      "name": "showOp",
+      "label": "Show When Operator",
+      "type": "TEXT"
+    },
+    {
+      "id": 11,
+      "name": "showValue",
+      "label": "Show When Value",
+      "type": "TEXT"
+    },
+    {
+      "id": 12,
+      "name": "calc",
+      "label": "Calculation",
+      "type": "TEXT"
+    },
+    {
+      "id": 13,
+      "name": "lookup",
+      "label": "Lookup Source",
+      "type": "TEXT"
+    },
+    {
+      "id": 14,
+      "name": "prefill",
+      "label": "Prefill From",
+      "type": "TEXT"
+    },
+    {
+      "id": 15,
+      "name": "regex",
+      "label": "Regular Expression",
+      "type": "TEXT"
+    },
+    {
+      "id": 16,
+      "name": "regexMessage",
+      "label": "Regular Expression Message",
+      "type": "TEXT"
+    },
+    {
+      "id": 17,
+      "name": "dataSource",
+      "label": "Data Source",
+      "type": "TEXT"
+    },
+    {
+      "id": 18,
+      "name": "sourceField",
+      "label": "Source Field",
+      "type": "TEXT"
+    },
+    {
+      "id": 19,
+      "name": "targetField",
+      "label": "Target Field",
+      "type": "TEXT"
+    },
+    {
+      "id": 20,
+      "name": "params",
+      "label": "Parameters",
+      "type": "TEXT"
+    },
+    {
+      "id": 21,
+      "name": "labels",
+      "label": "Labels by Language",
+      "type": "TEXT"
+    },
+    {
+      "id": 22,
+      "name": "confidential",
+      "label": "Confidential",
+      "type": "BOOLEAN"
+    }
+  ]
+}

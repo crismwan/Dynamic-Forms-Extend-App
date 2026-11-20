@@ -1,0 +1,112 @@
+{
+  "id": "FormOpen",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "endPoints": [
+    {
+      "name": "rec",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'dynForms/' + (queryParams.taskObjectId ?? '') %>"
+    }
+  ],
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormOpen_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "formFieldSet",
+          "title": "<% presentationLabels.FormOpen_formFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "codeText",
+              "label": "<% presentationLabels.FormOpen_codeText_label %>",
+              "enabled": false,
+              "value": "<% rec.code ?? '' %>"
+            },
+            {
+              "type": "text",
+              "id": "nameText",
+              "label": "<% presentationLabels.FormOpen_nameText_label %>",
+              "enabled": false,
+              "value": "<% rec.formName ?? '' %>"
+            },
+            {
+              "type": "text",
+              "id": "statusText",
+              "label": "<% presentationLabels.FormOpen_statusText_label %>",
+              "enabled": false,
+              "value": "<% rec.status ?? '' %>"
+            },
+            {
+              "type": "button",
+              "id": "fillButton",
+              "label": "<% presentationLabels.FormOpen_fillButton_label %>",
+              "action": "PRIMARY",
+              "taskReference": {
+                "taskId": "DynFormLookup",
+                "parameterBindings": {
+                  "form": "<% rec.code ?? '' %>"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "designButton",
+              "label": "<% presentationLabels.FormOpen_designButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormDesigner",
+                "parameterBindings": {
+                  "form": "<% rec.code ?? '' %>"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "questionsButton",
+              "label": "<% presentationLabels.FormOpen_questionsButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormQuestions",
+                "parameterBindings": {
+                  "form": "<% rec.code ?? '' %>"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "responsesButton",
+              "label": "<% presentationLabels.FormOpen_responsesButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "DynFormResults",
+                "parameterBindings": {
+                  "form": "<% rec.code ?? '' %>"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

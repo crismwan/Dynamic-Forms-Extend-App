@@ -1,0 +1,91 @@
+{
+  "id": "ErrorPage",
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.ErrorPage_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "cardContainer",
+          "id": "heroCardContainer",
+          "layout": "grid",
+          "cards": [
+            {
+              "type": "card",
+              "cardId": "Hero",
+              "parameters": "<% {'heroTitle': (presentationLabels.ErrorPage_card_heroTitle_1), 'heroLine': (presentationLabels.ErrorPage_card_heroLine_2), 'heroIcon': 'wd-accent-data-refresh', 'chipLabel': empty(queryParams.errorCode) ? (presentationLabels.ErrorPage_card_chipLabel_3) : ((presentationLabels.ErrorPage_card_chipLabel_3 + ' ') + queryParams.errorCode), 'chipColor': 'red'} %>"
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "id": "homeLinkSection",
+          "children": [
+            {
+              "type": "button",
+              "id": "homeButton",
+              "label": "<% presentationLabels.ErrorPage_homeButton_label %>",
+              "action": "PRIMARY",
+              "taskReference": {
+                "taskId": "Home"
+              }
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "errorFieldSet",
+          "title": "<% presentationLabels.ErrorPage_errorFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "errorGeneralText",
+              "enabled": false,
+              "label": "<% presentationLabels.ErrorPage_errorGeneralText_label %>",
+              "value": "<% 'The page could not be shown. 403 usually means a missing security domain (Use: Dynamic Forms); 404 a page that does not exist; 500 a Workday error.' %>",
+              "visible": "<% empty(queryParams.errorCode) || !['401', '403', '404', '500'].contains(queryParams.errorCode) %>"
+            },
+            {
+              "type": "text",
+              "id": "error401Text",
+              "enabled": false,
+              "label": "<% presentationLabels.ErrorPage_error401Text_label %>",
+              "value": "<% 'Your Workday session has ended. Sign in again, then reopen the page.' %>",
+              "visible": "<% queryParams.errorCode == '401' %>"
+            },
+            {
+              "type": "text",
+              "id": "error403Text",
+              "enabled": false,
+              "label": "<% presentationLabels.ErrorPage_error403Text_label %>",
+              "value": "<% 'You do not have access to this page. Dynamic Forms needs the security domain Use: Dynamic Forms (or Dyn Forms Fill for My Forms): ask your security administrator.' %>",
+              "visible": "<% queryParams.errorCode == '403' %>"
+            },
+            {
+              "type": "text",
+              "id": "error404Text",
+              "enabled": false,
+              "label": "<% presentationLabels.ErrorPage_error404Text_label %>",
+              "value": "<% 'That page does not exist in this app. It may have been renamed: open Dynamic Forms from the search.' %>",
+              "visible": "<% queryParams.errorCode == '404' %>"
+            },
+            {
+              "type": "text",
+              "id": "error500Text",
+              "enabled": false,
+              "label": "<% presentationLabels.ErrorPage_error500Text_label %>",
+              "value": "<% 'Workday could not load this page. Try again; if it happens again, note the time and tell the forms team.' %>",
+              "visible": "<% queryParams.errorCode == '500' %>"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

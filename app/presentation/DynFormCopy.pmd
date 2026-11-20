@@ -1,0 +1,281 @@
+{
+  "id": "DynFormCopy",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "include": [
+    "df.script"
+  ],
+  "script": "<%\n  var mode = function() { empty(modeInstanceList.getValue()) ? 'copy' : modeInstanceList.getValue()[0]; };\n  var src = function() { empty(sourceInstanceList.getValue()) ? '' : sourceInstanceList.getValue()[0]; };\n  var tgt = function() { empty(targetInstanceList.getValue()) ? '' : targetInstanceList.getValue()[0]; };\n  var srcQs = function() { mode() == 'import' ? df.cpImport(importTextArea.getValue()).questions : (empty(src()) ? [] : (qsOf.invoke({'c': src()}).data ?? [])); };\n  var code = function() { mode() == 'import' ? (empty(newCodeText.getValue()) ? df.cpImport(importTextArea.getValue()).code : ('' + newCodeText.getValue()).trim()) : df.cpCode(mode(), src(), tgt(), newCodeText.getValue(), forms.data ?? []); };\n  var subSizes = function(qs) {\n    var m = {:};\n    for (var x : qs) { var c0 = x.qOptions ?? ''; if (((x.qType ?? '') == 'subform' || (x.qType ?? '') == 'repeat') && !empty(c0) && !m.containsKey(c0)) { m.put(c0, (qsOf.invoke({'c': c0}).data ?? []).size()); } }\n    m;\n  };\n  var plan = function() {\n    var tq = (mode() == 'add' && !empty(tgt())) ? (qsOf.invoke({'c': tgt()}).data ?? []) : [];\n    var sq = srcQs();\n    var both = [];\n    both.addAll(sq);\n    both.addAll(tq);\n    df.cpPlan(sq, questionsInstanceList.getValue() ?? [], tq, code(), mode() == 'import' ? 'copy' : mode(), subSizes(both));\n  };\n  var pol = function(w) { empty(w.getValue()) ? 'default' : ('' + w.getValue()[0]).replace('Nf', '').replace('Fail', ''); };\n  var preview = function() {\n    var m = mode();\n    newCodeText.setRequired(m == 'copy');\n    targetInstanceList.setRequired(m == 'add');\n    importTextArea.setRequired(m == 'import');\n    sourceInstanceList.setRequired(m != 'import');\n    var taken = (forms.data ?? []).map(f => { f.code ?? '' });\n    var c = code();\n    if ((m == 'copy' || m == 'import' || m == 'version') && taken.contains(c)) { newCodeText.setError('A form with the code ' + c + ' already exists.'); } else { newCodeText.clearError(); }\n    previewReadOnlyText.setValue(m == 'policy' ? (empty(src()) ? 'Pick the form.' : src() + ': when not filled ' + pol(noFormInstanceList) + ', when the check fails ' + pol(failInstanceList) + ' (empty = the orchestration default, cancel).' + (empty(alsoAssignText.getValue()) ? '' : ' Also assigned with it: ' + alsoAssignText.getValue() + '.')) : m == 'publish' ? (empty(src()) ? 'Pick the version to publish.' : src() + ' becomes Published. New requests get the highest published version of its family; requests already assigned keep theirs.') : plan().summary);\n  };\n  var pickSource = function() {\n    var qs = empty(src()) ? [] : (qsOf.invoke({'c': src()}).data ?? []);\n    questionsInstanceList.setValues(qs.map(x => { { 'id': x.qKey ?? '', 'descriptor': (x.qKey ?? '') + ' · ' + (x.qLabel ?? '') } }));\n    exportTextArea.setValue(empty(src()) ? '' : df.cpExport(forms.data ?? [], src(), qs));\n    preview();\n  };\n%>",
+  "endPoints": [
+    {
+      "name": "forms",
+      "baseUrlType": "app",
+      "url": "dynForms?limit=100",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "qsOf",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "deferred": true,
+      "url": "<% 'dynQuestions?limit=100&formCode=' + c.urlEncode() %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postForm",
+        "baseUrlType": "app",
+        "url": "dynForms",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% mode() == 'add' || mode() == 'publish' || mode() == 'policy' %>",
+        "onSend": "<% self.data = {:}; var f = df.fRow(forms.data ?? [], src()); self.data.code = code(); self.data.formName = mode() == 'import' ? df.cpImport(importTextArea.getValue()).formName : ((f.formName ?? src()) + (mode() == 'copy' ? ' (copy)' : '')); self.data.version = df.cpVersion(mode(), src(), forms.data ?? []); self.data.status = 'Draft'; self.data.copiedFrom = mode() == 'import' ? 'import' : src(); self.data.family = mode() == 'version' ? df.family(forms.data ?? [], src()) : code(); self.data; %>"
+      },
+      {
+        "name": "publishForm",
+        "baseUrlType": "app",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "url": "<% 'dynForms/' + (df.fRow(forms.data ?? [], src()).id ?? 'none') %>",
+        "exclude": "<% mode() != 'publish' %>",
+        "onSend": "<% self.data = {:}; self.data.status = 'Published'; self.data.family = df.family(forms.data ?? [], src()); self.data; %>"
+      },
+      {
+        "name": "policyForm",
+        "baseUrlType": "app",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "url": "<% 'dynForms/' + (df.fRow(forms.data ?? [], src()).id ?? 'none') %>",
+        "exclude": "<% mode() != 'policy' %>",
+        "onSend": "<% self.data = {:}; self.data.noFormPolicy = empty(noFormInstanceList.getValue()) ? '' : ('' + noFormInstanceList.getValue()[0]).replace('Nf', '').replace('Fail', ''); self.data.failPolicy = empty(failInstanceList.getValue()) ? '' : ('' + failInstanceList.getValue()[0]).replace('Nf', '').replace('Fail', ''); self.data.alsoAssign = (alsoAssignText.getValue() ?? '').replace(' ', '').replace('\\'', '').replace('\"', ''); self.data; %>"
+      },
+      {
+        "name": "postQuestions1",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% mode() == 'publish' || mode() == 'policy' || plan().rows.size() == 0 %>",
+        "onSend": "<% var rows = plan().rows; self.data = {:}; self.data.data = rows.size() > 100 ? rows.subList(0, 100) : rows; self.data; %>"
+      },
+      {
+        "name": "postQuestions2",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% mode() == 'publish' || mode() == 'policy' || plan().rows.size() <= 100 %>",
+        "onSend": "<% var rows = plan().rows; self.data = {:}; self.data.data = rows.subList(100, rows.size() > 200 ? 200 : rows.size()); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.DynFormCopy_pageTitle_label %>"
+    },
+    "cancelOverride": {
+      "taskId": "DynFormResults"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "copyFieldSet",
+          "title": "<% presentationLabels.DynFormCopy_copyFieldSet_title %>",
+          "children": [
+            {
+              "type": "instanceList",
+              "id": "modeInstanceList",
+              "label": "<% presentationLabels.DynFormCopy_modeInstanceList_label %>",
+              "required": true,
+              "onChange": "<% preview() %>",
+              "instanceList": [
+                {
+                  "id": "copy",
+                  "descriptor": "Copy as a new form (version 1, Draft)"
+                },
+                {
+                  "id": "version",
+                  "descriptor": "New version of the same form (Draft)"
+                },
+                {
+                  "id": "add",
+                  "descriptor": "Add questions to another form"
+                },
+                {
+                  "id": "publish",
+                  "descriptor": "Publish this version"
+                },
+                {
+                  "id": "import",
+                  "descriptor": "Import a form from JSON (as Draft)"
+                },
+                {
+                  "id": "policy",
+                  "descriptor": "Set the gate policy for this form"
+                }
+              ]
+            },
+            {
+              "type": "instanceList",
+              "id": "sourceInstanceList",
+              "label": "<% presentationLabels.DynFormCopy_sourceInstanceList_label %>",
+              "values": "<% (forms.data ?? []).map(f => { { 'id': f.code ?? '', 'descriptor': (f.code ?? '') + ' · v' + ('' + (f.version ?? 1)).substringBefore('.') + ' · ' + (f.status ?? '') } }) %>",
+              "onChange": "<% pickSource() %>"
+            },
+            {
+              "type": "text",
+              "id": "newCodeText",
+              "label": "<% presentationLabels.DynFormCopy_newCodeText_label %>",
+              "onChange": "<% preview() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "targetInstanceList",
+              "label": "<% presentationLabels.DynFormCopy_targetInstanceList_label %>",
+              "values": "<% (forms.data ?? []).map(f => { { 'id': f.code ?? '', 'descriptor': (f.code ?? '') + ' · v' + ('' + (f.version ?? 1)).substringBefore('.') + ' · ' + (f.status ?? '') } }) %>",
+              "onChange": "<% preview() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "questionsInstanceList",
+              "label": "<% presentationLabels.DynFormCopy_questionsInstanceList_label %>",
+              "multiSelect": true,
+              "values": "<% [] %>",
+              "onChange": "<% preview() %>"
+            },
+            {
+              "type": "textArea",
+              "id": "importTextArea",
+              "label": "<% presentationLabels.DynFormCopy_importTextArea_label %>",
+              "onChange": "<% preview() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "noFormInstanceList",
+              "label": "<% presentationLabels.DynFormCopy_noFormInstanceList_label %>",
+              "instanceList": [
+                {
+                  "id": "cancelNf",
+                  "descriptor": "Cancel the request"
+                },
+                {
+                  "id": "sendbackNf",
+                  "descriptor": "Send it back to the requester"
+                },
+                {
+                  "id": "passNf",
+                  "descriptor": "Let it pass"
+                }
+              ],
+              "onChange": "<% preview() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "failInstanceList",
+              "label": "<% presentationLabels.DynFormCopy_failInstanceList_label %>",
+              "instanceList": [
+                {
+                  "id": "cancelFail",
+                  "descriptor": "Cancel the request"
+                },
+                {
+                  "id": "sendbackFail",
+                  "descriptor": "Send it back to the requester"
+                },
+                {
+                  "id": "passFail",
+                  "descriptor": "Let it pass"
+                }
+              ],
+              "onChange": "<% preview() %>"
+            },
+            {
+              "type": "text",
+              "id": "alsoAssignText",
+              "label": "<% presentationLabels.DynFormCopy_alsoAssignText_label %>",
+              "onChange": "<% preview() %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "previewReadOnlyText",
+              "label": "<% presentationLabels.DynFormCopy_previewReadOnlyText_label %>",
+              "value": "<% 'Pick an action and a form.' %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "exportFieldSet",
+          "title": "<% presentationLabels.DynFormCopy_exportFieldSet_title %>",
+          "collapsible": true,
+          "initializeCollapsed": true,
+          "children": [
+            {
+              "type": "textArea",
+              "id": "exportTextArea",
+              "label": "<% presentationLabels.DynFormCopy_exportTextArea_label %>",
+              "enabled": false,
+              "value": "<% '' %>"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

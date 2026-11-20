@@ -1,0 +1,9 @@
+{
+  "id": 12,
+  "name": "MyForms",
+  "label": "My Forms to Fill",
+  "securityDomains": [
+    "DynFill"
+  ],
+  "routePath": "/dynMyForms"
+}

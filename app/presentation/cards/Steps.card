@@ -1,0 +1,15 @@
+{
+  "id": "Steps",
+  "parameters": [
+    "stepsTitle",
+    "stepsText"
+  ],
+  "header": {
+    "title": "<% stepsTitle %>",
+    "icon": "wd-accent-resources"
+  },
+  "body": {
+    "type": "simpleCard",
+    "value": "<% stepsText %>"
+  }
+}

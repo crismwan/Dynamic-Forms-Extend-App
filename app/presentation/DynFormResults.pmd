@@ -1,0 +1,525 @@
+{
+  "id": "DynFormResults",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "include": [
+    "df.script"
+  ],
+  "endPoints": [
+    {
+      "name": "forms",
+      "baseUrlType": "app",
+      "url": "dynForms?limit=100",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "responses",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode(df.resQ(queryParams.form, 'responses')) %>"
+    },
+    {
+      "name": "answers",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode(df.ansQ(df.cap((responses.data ?? []).filter(r => { (empty(queryParams.form) || r.formCode == queryParams.form) && (empty(queryParams.key) || r.responseKey == queryParams.key || r.parentKey == queryParams.key) && (empty(queryParams.taskObjectId) || r.workdayID == queryParams.taskObjectId) }), (empty(queryParams.form) && empty(queryParams.key) && empty(queryParams.taskObjectId)) ? 50 : 10000).map(x => { x.responseKey }))) %>"
+    },
+    {
+      "name": "questions",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT workdayID, formCode, qKey FROM ' + 'developertoolkitappv1_kwswrv_dynQuestions') %>"
+    }
+  ],
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.DynFormResults_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "grid",
+          "id": "nextGrid",
+          "label": "<% presentationLabels.DynFormResults_nextGrid_label %>",
+          "rowVariableName": "nr",
+          "render": "<% !empty(df.pending(responses.data ?? [])) %>",
+          "rows": "<% df.pending(responses.data ?? []) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "nkeyColumn",
+              "label": "<% presentationLabels.DynFormResults_nkeyColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "nkeyFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "nkeyInstanceList",
+                    "visible": "<% !empty(nr.workdayID) %>",
+                    "values": "<% empty(nr.workdayID) ? [] : [{'id': nr.workdayID, 'descriptor': nr.responseKey ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "nkeyText",
+                    "enabled": false,
+                    "visible": "<% empty(nr.workdayID) %>",
+                    "value": "<% nr.responseKey ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "nformColumn",
+              "label": "<% presentationLabels.DynFormResults_nformColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "nformFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "nformInstanceList",
+                    "visible": "<% !empty(df.formWid(forms.data, nr)) %>",
+                    "values": "<% empty(df.formWid(forms.data, nr)) ? [] : [{'id': df.formWid(forms.data, nr), 'descriptor': nr.formCode ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "nformText",
+                    "enabled": false,
+                    "visible": "<% empty(df.formWid(forms.data, nr)) %>",
+                    "value": "<% nr.formCode ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "nstatusColumn",
+              "label": "<% presentationLabels.DynFormResults_nstatusColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "nstatusFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "nstatusInstanceList",
+                    "visible": "<% !empty(df.statusWid(nr)) %>",
+                    "values": "<% empty(df.statusWid(nr)) ? [] : [{'id': df.statusWid(nr), 'descriptor': nr.status ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "nstatusText",
+                    "enabled": false,
+                    "visible": "<% empty(df.statusWid(nr)) %>",
+                    "value": "<% nr.status ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "nnextColumn",
+              "label": "<% presentationLabels.DynFormResults_nnextColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "nnextFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "nnextInstanceList",
+                    "visible": "<% !empty(df.widOf(forms.data, 'code', nr.nextForm)) %>",
+                    "values": "<% empty(df.widOf(forms.data, 'code', nr.nextForm)) ? [] : [{'id': df.widOf(forms.data, 'code', nr.nextForm), 'descriptor': nr.nextForm ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "nnextText",
+                    "enabled": false,
+                    "visible": "<% empty(df.widOf(forms.data, 'code', nr.nextForm)) %>",
+                    "value": "<% nr.nextForm ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "nfillColumn",
+              "label": "<% presentationLabels.DynFormResults_nfillColumn_label %>",
+              "excel": {
+                "enabled": false
+              },
+              "cellTemplate": {
+                "type": "button",
+                "id": "fillNextButton",
+                "label": "<% presentationLabels.DynFormResults_fillNextButton_label %>",
+                "action": "PRIMARY",
+                "taskReference": {
+                  "taskId": "DynFormLookup",
+                  "parameterBindings": {
+                    "form": "<% nr.nextForm ?? '' %>",
+                    "parent": "<% nr.responseKey ?? '' %>"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "responsesGrid",
+          "label": "<% presentationLabels.DynFormResults_responsesGrid_label %>",
+          "rowVariableName": "rr",
+          "rows": "<% df.cap((responses.data ?? []).filter(r => { (empty(queryParams.form) || r.formCode == queryParams.form) && (empty(queryParams.key) || r.responseKey == queryParams.key || r.parentKey == queryParams.key) && (empty(queryParams.taskObjectId) || r.workdayID == queryParams.taskObjectId) }), (empty(queryParams.form) && empty(queryParams.key) && empty(queryParams.taskObjectId)) ? 50 : 10000) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "keyColumn",
+              "label": "<% presentationLabels.DynFormResults_keyColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "keyFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "keyInstanceList",
+                    "visible": "<% !empty(rr.workdayID) %>",
+                    "values": "<% empty(rr.workdayID) ? [] : [{'id': rr.workdayID, 'descriptor': rr.responseKey ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "keyText",
+                    "enabled": false,
+                    "visible": "<% empty(rr.workdayID) %>",
+                    "value": "<% rr.responseKey ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "formColumn",
+              "label": "<% presentationLabels.DynFormResults_formColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "formFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "formInstanceList",
+                    "visible": "<% !empty(df.formWid(forms.data, rr)) %>",
+                    "values": "<% empty(df.formWid(forms.data, rr)) ? [] : [{'id': df.formWid(forms.data, rr), 'descriptor': rr.formCode ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "formText",
+                    "enabled": false,
+                    "visible": "<% empty(df.formWid(forms.data, rr)) %>",
+                    "value": "<% rr.formCode ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "statusColumn",
+              "label": "<% presentationLabels.DynFormResults_statusColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "statusFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "statusInstanceList",
+                    "visible": "<% !empty(df.statusWid(rr)) %>",
+                    "values": "<% empty(df.statusWid(rr)) ? [] : [{'id': df.statusWid(rr), 'descriptor': rr.status ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "statusText",
+                    "enabled": false,
+                    "visible": "<% empty(df.statusWid(rr)) %>",
+                    "value": "<% rr.status ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "subjectColumn",
+              "label": "<% presentationLabels.DynFormResults_subjectColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "subjectFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "subjectInstanceList",
+                    "visible": "<% !empty(df.subjWid(rr)) %>",
+                    "values": "<% empty(df.subjWid(rr)) ? [] : [{'id': df.subjWid(rr), 'descriptor': df.subjName(rr)}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "subjectText",
+                    "enabled": false,
+                    "visible": "<% empty(df.subjWid(rr)) %>",
+                    "value": "<% df.subjName(rr) %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "parentColumn",
+              "label": "<% presentationLabels.DynFormResults_parentColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "parentFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "parentInstanceList",
+                    "visible": "<% !empty(df.widOf(responses.data, 'responseKey', rr.parentKey)) %>",
+                    "values": "<% empty(df.widOf(responses.data, 'responseKey', rr.parentKey)) ? [] : [{'id': df.widOf(responses.data, 'responseKey', rr.parentKey), 'descriptor': rr.parentKey ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "parentText",
+                    "enabled": false,
+                    "visible": "<% empty(df.widOf(responses.data, 'responseKey', rr.parentKey)) %>",
+                    "value": "<% rr.parentKey ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "nextColumn",
+              "label": "<% presentationLabels.DynFormResults_nextColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "nextFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "nextInstanceList",
+                    "visible": "<% !empty(df.widOf(forms.data, 'code', rr.nextForm)) %>",
+                    "values": "<% empty(df.widOf(forms.data, 'code', rr.nextForm)) ? [] : [{'id': df.widOf(forms.data, 'code', rr.nextForm), 'descriptor': rr.nextForm ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "nextText",
+                    "enabled": false,
+                    "visible": "<% empty(df.widOf(forms.data, 'code', rr.nextForm)) %>",
+                    "value": "<% rr.nextForm ?? '' %>"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "answersGrid",
+          "label": "<% presentationLabels.DynFormResults_answersGrid_label %>",
+          "rowVariableName": "ar",
+          "rows": "<% let keys = df.cap((responses.data ?? []).filter(r => { (empty(queryParams.form) || r.formCode == queryParams.form) && (empty(queryParams.key) || r.responseKey == queryParams.key || r.parentKey == queryParams.key) && (empty(queryParams.taskObjectId) || r.workdayID == queryParams.taskObjectId) }), (empty(queryParams.form) && empty(queryParams.key) && empty(queryParams.taskObjectId)) ? 50 : 10000).map(x => { x.responseKey }).join('|'); let kt = '|' + keys + '|'; df.tag((answers.data ?? []).filter(r => { kt.contains('|' + (r.responseKey ?? '') + '|') }), responses.data ?? [], questions.data ?? []) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "akeyColumn",
+              "label": "<% presentationLabels.DynFormResults_akeyColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "akeyFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "akeyInstanceList",
+                    "visible": "<% !empty(ar.rw) %>",
+                    "values": "<% empty(ar.rw) ? [] : [{'id': ar.rw, 'descriptor': ar.responseKey ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "akeyText",
+                    "enabled": false,
+                    "visible": "<% empty(ar.rw) %>",
+                    "value": "<% ar.responseKey ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "qColumn",
+              "label": "<% presentationLabels.DynFormResults_qColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "qFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "qInstanceList",
+                    "visible": "<% !empty(ar.qw) %>",
+                    "values": "<% empty(ar.qw) ? [] : [{'id': ar.qw, 'descriptor': ar.qKey ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "qText",
+                    "enabled": false,
+                    "visible": "<% empty(ar.qw) %>",
+                    "value": "<% ar.qKey ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "textColumn",
+              "label": "<% presentationLabels.DynFormResults_textColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "textText",
+                "enabled": false,
+                "value": "<% ar.textValue ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "secretColumn",
+              "label": "<% presentationLabels.DynFormResults_secretColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "secretText",
+                "enabled": false,
+                "value": "<% ar.secretText ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "numberColumn",
+              "label": "<% presentationLabels.DynFormResults_numberColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "numberText",
+                "enabled": false,
+                "value": "<% (empty(ar.numberValue) || ('' + ar.numberValue) == '0') ? '' : '' + ar.numberValue %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "dateColumn",
+              "label": "<% presentationLabels.DynFormResults_dateColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "dateText",
+                "enabled": false,
+                "value": "<% ar.dateValue ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "refColumn",
+              "label": "<% presentationLabels.DynFormResults_refColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "refFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "refInstanceList",
+                    "visible": "<% !empty((!empty(ar.organization) ? ar.organization.id : (!empty(ar.position) ? ar.position.id : (!empty(ar.worker) ? ar.worker.id : '')))) %>",
+                    "values": "<% empty((!empty(ar.organization) ? ar.organization.id : (!empty(ar.position) ? ar.position.id : (!empty(ar.worker) ? ar.worker.id : '')))) ? [] : [{'id': (!empty(ar.organization) ? ar.organization.id : (!empty(ar.position) ? ar.position.id : (!empty(ar.worker) ? ar.worker.id : ''))), 'descriptor': ar.refDescriptor ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "refText",
+                    "enabled": false,
+                    "visible": "<% empty((!empty(ar.organization) ? ar.organization.id : (!empty(ar.position) ? ar.position.id : (!empty(ar.worker) ? ar.worker.id : '')))) %>",
+                    "value": "<% ar.refDescriptor ?? '' %>"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

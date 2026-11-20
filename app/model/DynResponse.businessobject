@@ -1,0 +1,98 @@
+{
+  "id": 5,
+  "name": "DynResponse",
+  "label": "Dyn Response",
+  "defaultSecurityDomains": [
+    "UseDynamicForms"
+  ],
+  "defaultCollection": {
+    "name": "dynResponses",
+    "label": "All Dyn Responses"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "responseKey",
+      "label": "Response Key",
+      "type": "TEXT",
+      "useForDisplay": true,
+      "enableIndex": true
+    },
+    {
+      "id": 2,
+      "name": "formCode",
+      "label": "Form Code",
+      "type": "TEXT"
+    },
+    {
+      "id": 3,
+      "name": "status",
+      "label": "Status",
+      "type": "TEXT"
+    },
+    {
+      "id": 4,
+      "name": "subject",
+      "label": "Subject",
+      "type": "SINGLE_INSTANCE",
+      "target": "WORKER",
+      "enableReportingFromTarget": true
+    },
+    {
+      "id": 5,
+      "name": "parentKey",
+      "label": "Parent Response Key",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 6,
+      "name": "nextForm",
+      "label": "Next Form",
+      "type": "TEXT"
+    },
+    {
+      "id": 7,
+      "name": "bpEvent",
+      "label": "Business Process Event",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 8,
+      "name": "bpTarget",
+      "label": "Business Process Target",
+      "type": "TEXT"
+    },
+    {
+      "id": 9,
+      "name": "family",
+      "label": "Form Family",
+      "type": "TEXT"
+    },
+    {
+      "id": 10,
+      "name": "formVersion",
+      "label": "Form Version",
+      "type": "INTEGER"
+    },
+    {
+      "id": 11,
+      "name": "orgName",
+      "label": "Organization",
+      "type": "TEXT"
+    },
+    {
+      "id": 12,
+      "name": "alsoExpected",
+      "label": "Also Expected Forms",
+      "type": "TEXT"
+    },
+    {
+      "id": 13,
+      "name": "bpPerson",
+      "label": "Business Process Person",
+      "type": "TEXT"
+    }
+  ]
+}

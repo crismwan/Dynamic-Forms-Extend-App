@@ -1,0 +1,89 @@
+{
+  "id": "Home",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "Dynamic Forms"
+    },
+    "body": {
+      "type": "hub",
+      "id": "formsHub",
+      "label": "Dynamic Forms",
+      "icon": "wd-accent-clipboard-checklist",
+      "initialTask": {
+        "taskId": "FormStudio"
+      },
+      "navigationTasks": [
+        {
+          "type": "item",
+          "label": "Form Studio",
+          "icon": "wd-icon-folder-close",
+          "task": {
+            "taskId": "FormStudio"
+          }
+        },
+        {
+          "type": "item",
+          "label": "Results",
+          "icon": "wd-icon-document",
+          "task": {
+            "taskId": "DynFormResults"
+          }
+        },
+        {
+          "type": "item",
+          "label": "My Forms to Fill",
+          "icon": "wd-icon-checkboxes",
+          "task": {
+            "taskId": "DynMyForms"
+          }
+        }
+      ],
+      "additionalLinks": {
+        "title": "More",
+        "links": [
+          {
+            "type": "task",
+            "label": "Fill a form",
+            "task": {
+              "taskId": "DynFormLookup"
+            }
+          },
+          {
+            "type": "task",
+            "label": "Design a form",
+            "task": {
+              "taskId": "FormDesigner"
+            }
+          },
+          {
+            "type": "task",
+            "label": "Copy, version or import",
+            "task": {
+              "taskId": "DynFormCopy"
+            }
+          },
+          {
+            "type": "task",
+            "label": "Seed test forms",
+            "task": {
+              "taskId": "DynFormSeed"
+            }
+          },
+          {
+            "type": "task",
+            "label": "Bulk test",
+            "task": {
+              "taskId": "DynFormBulk"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

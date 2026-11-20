@@ -1,0 +1,22 @@
+{
+  "id": "Hero",
+  "parameters": [
+    "heroTitle",
+    "heroLine",
+    "heroIcon",
+    "chipLabel",
+    "chipColor"
+  ],
+  "header": {
+    "title": "<% heroTitle %>",
+    "icon": "<% heroIcon ?: null %>",
+    "indicator": {
+      "label": "<% chipLabel ?: null %>",
+      "color": "<% chipColor ?: null %>"
+    }
+  },
+  "body": {
+    "type": "simpleCard",
+    "value": "<% heroLine %>"
+  }
+}

@@ -1,0 +1,7 @@
+{
+    "id": "5e9d989607bb0a7dc76212c6b7ad1615",
+    "referenceId": "developertoolkitappv1_kwswrv",
+    "name": "Developer Toolkit",
+    "description": "Tools for Workday Extend development, inside Workday: a WQL workbench, tenant readiness and app health checks. Read only.",
+    "version": "1.0.0"
+}

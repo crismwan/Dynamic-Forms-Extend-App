@@ -1,0 +1,87 @@
+{
+  "id": "DynFormNext",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "endPoints": [
+    {
+      "name": "rec",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'dynResponses/' + (queryParams.taskObjectId ?? '') %>"
+    }
+  ],
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.DynFormNext_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "recFieldSet",
+          "title": "<% presentationLabels.DynFormNext_recFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "keyText",
+              "label": "<% presentationLabels.DynFormNext_keyText_label %>",
+              "enabled": false,
+              "value": "<% rec.responseKey ?? '' %>"
+            },
+            {
+              "type": "text",
+              "id": "statusText",
+              "label": "<% presentationLabels.DynFormNext_statusText_label %>",
+              "enabled": false,
+              "value": "<% rec.status ?? '' %>"
+            },
+            {
+              "type": "text",
+              "id": "nextText",
+              "label": "<% presentationLabels.DynFormNext_nextText_label %>",
+              "enabled": false,
+              "value": "<% empty(rec.nextForm) ? 'This response has no next form.' : rec.nextForm %>"
+            },
+            {
+              "type": "button",
+              "id": "fillNextButton",
+              "label": "<% presentationLabels.DynFormNext_fillNextButton_label %>",
+              "action": "PRIMARY",
+              "render": "<% !empty(rec.nextForm) %>",
+              "taskReference": {
+                "taskId": "DynFormLookup",
+                "parameterBindings": {
+                  "form": "<% rec.nextForm ?? '' %>",
+                  "parent": "<% rec.responseKey ?? '' %>"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "allResponsesButton",
+              "label": "<% presentationLabels.DynFormNext_allResponsesButton_label %>",
+              "action": "LINK",
+              "taskReference": {
+                "taskId": "DynFormResults"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

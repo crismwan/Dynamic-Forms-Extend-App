@@ -1,0 +1,677 @@
+{
+  "id": "DynFormFill",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "include": [
+    "df.script"
+  ],
+  "endPoints": [
+    {
+      "name": "qs",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'dynQuestions?limit=100&formCode=' + (queryParams.form ?? 'TEST:DYN:SMALL').urlEncode() %>"
+    },
+    {
+      "name": "me",
+      "baseUrlType": "workday-api",
+      "url": "common/v1/workers/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    }
+  ],
+  "script": "<%\n  var slots = function() {\n    [[q1FieldSet, q1Text, q1Number, q1Date, q1InstanceList, q1CheckBox], [q2FieldSet, q2Text, q2Number, q2Date, q2InstanceList, q2CheckBox], [q3FieldSet, q3Text, q3Number, q3Date, q3InstanceList, q3CheckBox], [q4FieldSet, q4Text, q4Number, q4Date, q4InstanceList, q4CheckBox], [q5FieldSet, q5Text, q5Number, q5Date, q5InstanceList, q5CheckBox], [q6FieldSet, q6Text, q6Number, q6Date, q6InstanceList, q6CheckBox], [q7FieldSet, q7Text, q7Number, q7Date, q7InstanceList, q7CheckBox], [q8FieldSet, q8Text, q8Number, q8Date, q8InstanceList, q8CheckBox], [q9FieldSet, q9Text, q9Number, q9Date, q9InstanceList, q9CheckBox], [q10FieldSet, q10Text, q10Number, q10Date, q10InstanceList, q10CheckBox]];\n  };\n  var refreshLoop = function() {\n    var d = qs.data ?? [];\n    var all = slots();\n    var ans = {:};\n    var i = 0;\n    for (var s : all) {\n      i = i + 1;\n      var key = df.k(d, i);\n      if (!empty(key)) { ans.put(key, df.pick(d, i, [s[1].getValue(), s[2].getValue(), s[3].getValue(), s[4].getValue(), s[5].getValue()])); }\n    }\n    var j = 0;\n    for (var s2 : all) {\n      j = j + 1;\n      if (!empty(df.k(d, j))) {\n        var vis = df.show(d, j, ans);\n        s2[0].setVisible(vis);\n        var w = s2[df.wi(d, j)];\n        w.setRequired(vis && df.req(d, j));\n        if (df.c(d, j)) { var nv = df.calcVal(d, j, ans); if (w.getValue() != nv) { w.setValue(nv); } }\n      }\n    }\n    ans;\n  };\n  var refreshFlat = function() {\n    var d = qs.data ?? [];\n    var ans = {:};\n    if (!empty(df.k(d,1))) { ans.put(df.k(d,1), df.pick(d,1,[q1Text.getValue(), q1Number.getValue(), q1Date.getValue(), q1InstanceList.getValue(), q1CheckBox.getValue()])); }\n    if (!empty(df.k(d,2))) { ans.put(df.k(d,2), df.pick(d,2,[q2Text.getValue(), q2Number.getValue(), q2Date.getValue(), q2InstanceList.getValue(), q2CheckBox.getValue()])); }\n    if (!empty(df.k(d,3))) { ans.put(df.k(d,3), df.pick(d,3,[q3Text.getValue(), q3Number.getValue(), q3Date.getValue(), q3InstanceList.getValue(), q3CheckBox.getValue()])); }\n    if (!empty(df.k(d,4))) { ans.put(df.k(d,4), df.pick(d,4,[q4Text.getValue(), q4Number.getValue(), q4Date.getValue(), q4InstanceList.getValue(), q4CheckBox.getValue()])); }\n    if (!empty(df.k(d,5))) { ans.put(df.k(d,5), df.pick(d,5,[q5Text.getValue(), q5Number.getValue(), q5Date.getValue(), q5InstanceList.getValue(), q5CheckBox.getValue()])); }\n    if (!empty(df.k(d,6))) { ans.put(df.k(d,6), df.pick(d,6,[q6Text.getValue(), q6Number.getValue(), q6Date.getValue(), q6InstanceList.getValue(), q6CheckBox.getValue()])); }\n    if (!empty(df.k(d,7))) { ans.put(df.k(d,7), df.pick(d,7,[q7Text.getValue(), q7Number.getValue(), q7Date.getValue(), q7InstanceList.getValue(), q7CheckBox.getValue()])); }\n    if (!empty(df.k(d,8))) { ans.put(df.k(d,8), df.pick(d,8,[q8Text.getValue(), q8Number.getValue(), q8Date.getValue(), q8InstanceList.getValue(), q8CheckBox.getValue()])); }\n    if (!empty(df.k(d,9))) { ans.put(df.k(d,9), df.pick(d,9,[q9Text.getValue(), q9Number.getValue(), q9Date.getValue(), q9InstanceList.getValue(), q9CheckBox.getValue()])); }\n    if (!empty(df.k(d,10))) { ans.put(df.k(d,10), df.pick(d,10,[q10Text.getValue(), q10Number.getValue(), q10Date.getValue(), q10InstanceList.getValue(), q10CheckBox.getValue()])); }\n    if (!empty(df.k(d,1))) { var v1 = df.show(d,1,ans); var w1 = df.wi(d,1); var r1 = v1 && df.req(d,1); q1FieldSet.setVisible(v1); q1Text.setRequired(r1 && w1==1); q1Number.setRequired(r1 && w1==2); q1Date.setRequired(r1 && w1==3); q1InstanceList.setRequired(r1 && w1==4); if (df.c(d,1)) { var n1 = df.calcVal(d,1,ans); if (q1Number.getValue() != n1) { q1Number.setValue(n1); } } }\n    if (!empty(df.k(d,2))) { var v2 = df.show(d,2,ans); var w2 = df.wi(d,2); var r2 = v2 && df.req(d,2); q2FieldSet.setVisible(v2); q2Text.setRequired(r2 && w2==1); q2Number.setRequired(r2 && w2==2); q2Date.setRequired(r2 && w2==3); q2InstanceList.setRequired(r2 && w2==4); if (df.c(d,2)) { var n2 = df.calcVal(d,2,ans); if (q2Number.getValue() != n2) { q2Number.setValue(n2); } } }\n    if (!empty(df.k(d,3))) { var v3 = df.show(d,3,ans); var w3 = df.wi(d,3); var r3 = v3 && df.req(d,3); q3FieldSet.setVisible(v3); q3Text.setRequired(r3 && w3==1); q3Number.setRequired(r3 && w3==2); q3Date.setRequired(r3 && w3==3); q3InstanceList.setRequired(r3 && w3==4); if (df.c(d,3)) { var n3 = df.calcVal(d,3,ans); if (q3Number.getValue() != n3) { q3Number.setValue(n3); } } }\n    if (!empty(df.k(d,4))) { var v4 = df.show(d,4,ans); var w4 = df.wi(d,4); var r4 = v4 && df.req(d,4); q4FieldSet.setVisible(v4); q4Text.setRequired(r4 && w4==1); q4Number.setRequired(r4 && w4==2); q4Date.setRequired(r4 && w4==3); q4InstanceList.setRequired(r4 && w4==4); if (df.c(d,4)) { var n4 = df.calcVal(d,4,ans); if (q4Number.getValue() != n4) { q4Number.setValue(n4); } } }\n    if (!empty(df.k(d,5))) { var v5 = df.show(d,5,ans); var w5 = df.wi(d,5); var r5 = v5 && df.req(d,5); q5FieldSet.setVisible(v5); q5Text.setRequired(r5 && w5==1); q5Number.setRequired(r5 && w5==2); q5Date.setRequired(r5 && w5==3); q5InstanceList.setRequired(r5 && w5==4); if (df.c(d,5)) { var n5 = df.calcVal(d,5,ans); if (q5Number.getValue() != n5) { q5Number.setValue(n5); } } }\n    if (!empty(df.k(d,6))) { var v6 = df.show(d,6,ans); var w6 = df.wi(d,6); var r6 = v6 && df.req(d,6); q6FieldSet.setVisible(v6); q6Text.setRequired(r6 && w6==1); q6Number.setRequired(r6 && w6==2); q6Date.setRequired(r6 && w6==3); q6InstanceList.setRequired(r6 && w6==4); if (df.c(d,6)) { var n6 = df.calcVal(d,6,ans); if (q6Number.getValue() != n6) { q6Number.setValue(n6); } } }\n    if (!empty(df.k(d,7))) { var v7 = df.show(d,7,ans); var w7 = df.wi(d,7); var r7 = v7 && df.req(d,7); q7FieldSet.setVisible(v7); q7Text.setRequired(r7 && w7==1); q7Number.setRequired(r7 && w7==2); q7Date.setRequired(r7 && w7==3); q7InstanceList.setRequired(r7 && w7==4); if (df.c(d,7)) { var n7 = df.calcVal(d,7,ans); if (q7Number.getValue() != n7) { q7Number.setValue(n7); } } }\n    if (!empty(df.k(d,8))) { var v8 = df.show(d,8,ans); var w8 = df.wi(d,8); var r8 = v8 && df.req(d,8); q8FieldSet.setVisible(v8); q8Text.setRequired(r8 && w8==1); q8Number.setRequired(r8 && w8==2); q8Date.setRequired(r8 && w8==3); q8InstanceList.setRequired(r8 && w8==4); if (df.c(d,8)) { var n8 = df.calcVal(d,8,ans); if (q8Number.getValue() != n8) { q8Number.setValue(n8); } } }\n    if (!empty(df.k(d,9))) { var v9 = df.show(d,9,ans); var w9 = df.wi(d,9); var r9 = v9 && df.req(d,9); q9FieldSet.setVisible(v9); q9Text.setRequired(r9 && w9==1); q9Number.setRequired(r9 && w9==2); q9Date.setRequired(r9 && w9==3); q9InstanceList.setRequired(r9 && w9==4); if (df.c(d,9)) { var n9 = df.calcVal(d,9,ans); if (q9Number.getValue() != n9) { q9Number.setValue(n9); } } }\n    if (!empty(df.k(d,10))) { var v10 = df.show(d,10,ans); var w10 = df.wi(d,10); var r10 = v10 && df.req(d,10); q10FieldSet.setVisible(v10); q10Text.setRequired(r10 && w10==1); q10Number.setRequired(r10 && w10==2); q10Date.setRequired(r10 && w10==3); q10InstanceList.setRequired(r10 && w10==4); if (df.c(d,10)) { var n10 = df.calcVal(d,10,ans); if (q10Number.getValue() != n10) { q10Number.setValue(n10); } } }\n    ans;\n  };\n  var refresh = function() {\n    var t0 = date:now().format('mmssSSS').toInt();\n    var res = queryParams.mode == 'flat' ? refreshFlat() : refreshLoop();\n    timingReadOnlyText.setValue('Last refresh (' + (queryParams.mode ?? 'loop') + '): ' + (date:now().format('mmssSSS').toInt() - t0) + ' ms, ' + res.size() + ' answers');\n    res;\n  };\n%>",
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postResponse",
+        "baseUrlType": "app",
+        "url": "dynResponses",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "onSend": "<% self.data = {:}; self.data.responseKey = responseKeyText.getValue(); self.data.formCode = formCodeText.getValue(); self.data.status = 'Submitted'; var subj = {:}; subj.id = me.id; self.data.subject = subj; self.data; %>"
+      },
+      {
+        "name": "postAnswers",
+        "baseUrlType": "app",
+        "url": "dynAnswers?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "onSend": "<% self.data = {:}; self.data.data = df.answers(qs.data ?? [], refresh(), responseKeyText.getValue(), formCodeText.getValue()); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.DynFormFill_pageTitle_label %>"
+    },
+    "cancelOverride": {
+      "taskId": "DynFormResults"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "diagFieldSet",
+          "title": "<% presentationLabels.DynFormFill_diagFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "formCodeText",
+              "label": "<% presentationLabels.DynFormFill_formCodeText_label %>",
+              "enabled": false,
+              "value": "<% queryParams.form ?? 'TEST:DYN:SMALL' %>"
+            },
+            {
+              "type": "text",
+              "id": "responseKeyText",
+              "label": "<% presentationLabels.DynFormFill_responseKeyText_label %>",
+              "enabled": false,
+              "value": "<% 'TEST:DYN:R' + date:now().format('yyyyMMddHHmmssSSS') %>"
+            },
+            {
+              "type": "text",
+              "id": "loadedText",
+              "label": "<% presentationLabels.DynFormFill_loadedText_label %>",
+              "enabled": false,
+              "value": "<% '' + (qs.data ?? []).size() + ' questions, form codes: ' + (qs.data ?? []).map(x => { x.formCode ?? '' }).distinct().join(', ') + ', slots: 10' %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "timingReadOnlyText",
+              "label": "<% presentationLabels.DynFormFill_timingReadOnlyText_label %>",
+              "value": "<% 'Not run yet' %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q1FieldSet",
+          "visible": "<% df.v(qs.data,1) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q1Text",
+              "label": "<% df.l(qs.data,1) %>",
+              "visible": "<% df.t(qs.data,1)=='text' %>",
+              "required": "<% df.r(qs.data,1,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q1Guide",
+                "title": "<% df.l(qs.data,1) %>",
+                "text": "<% df.h(qs.data,1) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q1Number",
+              "label": "<% df.l(qs.data,1) %>",
+              "visible": "<% df.t(qs.data,1)=='number' %>",
+              "required": "<% df.r(qs.data,1,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,1) %>"
+            },
+            {
+              "type": "date",
+              "id": "q1Date",
+              "label": "<% df.l(qs.data,1) %>",
+              "visible": "<% df.t(qs.data,1)=='date' %>",
+              "required": "<% df.r(qs.data,1,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q1InstanceList",
+              "label": "<% df.l(qs.data,1) %>",
+              "visible": "<% df.t(qs.data,1)=='choice' %>",
+              "required": "<% df.r(qs.data,1,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,1) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q1CheckBox",
+              "label": "<% df.l(qs.data,1) %>",
+              "visible": "<% df.t(qs.data,1)=='yesno' %>",
+              "required": "<% df.r(qs.data,1,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q2FieldSet",
+          "visible": "<% df.v(qs.data,2) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q2Text",
+              "label": "<% df.l(qs.data,2) %>",
+              "visible": "<% df.t(qs.data,2)=='text' %>",
+              "required": "<% df.r(qs.data,2,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q2Guide",
+                "title": "<% df.l(qs.data,2) %>",
+                "text": "<% df.h(qs.data,2) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q2Number",
+              "label": "<% df.l(qs.data,2) %>",
+              "visible": "<% df.t(qs.data,2)=='number' %>",
+              "required": "<% df.r(qs.data,2,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,2) %>"
+            },
+            {
+              "type": "date",
+              "id": "q2Date",
+              "label": "<% df.l(qs.data,2) %>",
+              "visible": "<% df.t(qs.data,2)=='date' %>",
+              "required": "<% df.r(qs.data,2,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q2InstanceList",
+              "label": "<% df.l(qs.data,2) %>",
+              "visible": "<% df.t(qs.data,2)=='choice' %>",
+              "required": "<% df.r(qs.data,2,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,2) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q2CheckBox",
+              "label": "<% df.l(qs.data,2) %>",
+              "visible": "<% df.t(qs.data,2)=='yesno' %>",
+              "required": "<% df.r(qs.data,2,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q3FieldSet",
+          "visible": "<% df.v(qs.data,3) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q3Text",
+              "label": "<% df.l(qs.data,3) %>",
+              "visible": "<% df.t(qs.data,3)=='text' %>",
+              "required": "<% df.r(qs.data,3,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q3Guide",
+                "title": "<% df.l(qs.data,3) %>",
+                "text": "<% df.h(qs.data,3) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q3Number",
+              "label": "<% df.l(qs.data,3) %>",
+              "visible": "<% df.t(qs.data,3)=='number' %>",
+              "required": "<% df.r(qs.data,3,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,3) %>"
+            },
+            {
+              "type": "date",
+              "id": "q3Date",
+              "label": "<% df.l(qs.data,3) %>",
+              "visible": "<% df.t(qs.data,3)=='date' %>",
+              "required": "<% df.r(qs.data,3,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q3InstanceList",
+              "label": "<% df.l(qs.data,3) %>",
+              "visible": "<% df.t(qs.data,3)=='choice' %>",
+              "required": "<% df.r(qs.data,3,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,3) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q3CheckBox",
+              "label": "<% df.l(qs.data,3) %>",
+              "visible": "<% df.t(qs.data,3)=='yesno' %>",
+              "required": "<% df.r(qs.data,3,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q4FieldSet",
+          "visible": "<% df.v(qs.data,4) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q4Text",
+              "label": "<% df.l(qs.data,4) %>",
+              "visible": "<% df.t(qs.data,4)=='text' %>",
+              "required": "<% df.r(qs.data,4,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q4Guide",
+                "title": "<% df.l(qs.data,4) %>",
+                "text": "<% df.h(qs.data,4) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q4Number",
+              "label": "<% df.l(qs.data,4) %>",
+              "visible": "<% df.t(qs.data,4)=='number' %>",
+              "required": "<% df.r(qs.data,4,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,4) %>"
+            },
+            {
+              "type": "date",
+              "id": "q4Date",
+              "label": "<% df.l(qs.data,4) %>",
+              "visible": "<% df.t(qs.data,4)=='date' %>",
+              "required": "<% df.r(qs.data,4,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q4InstanceList",
+              "label": "<% df.l(qs.data,4) %>",
+              "visible": "<% df.t(qs.data,4)=='choice' %>",
+              "required": "<% df.r(qs.data,4,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,4) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q4CheckBox",
+              "label": "<% df.l(qs.data,4) %>",
+              "visible": "<% df.t(qs.data,4)=='yesno' %>",
+              "required": "<% df.r(qs.data,4,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q5FieldSet",
+          "visible": "<% df.v(qs.data,5) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q5Text",
+              "label": "<% df.l(qs.data,5) %>",
+              "visible": "<% df.t(qs.data,5)=='text' %>",
+              "required": "<% df.r(qs.data,5,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q5Guide",
+                "title": "<% df.l(qs.data,5) %>",
+                "text": "<% df.h(qs.data,5) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q5Number",
+              "label": "<% df.l(qs.data,5) %>",
+              "visible": "<% df.t(qs.data,5)=='number' %>",
+              "required": "<% df.r(qs.data,5,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,5) %>"
+            },
+            {
+              "type": "date",
+              "id": "q5Date",
+              "label": "<% df.l(qs.data,5) %>",
+              "visible": "<% df.t(qs.data,5)=='date' %>",
+              "required": "<% df.r(qs.data,5,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q5InstanceList",
+              "label": "<% df.l(qs.data,5) %>",
+              "visible": "<% df.t(qs.data,5)=='choice' %>",
+              "required": "<% df.r(qs.data,5,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,5) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q5CheckBox",
+              "label": "<% df.l(qs.data,5) %>",
+              "visible": "<% df.t(qs.data,5)=='yesno' %>",
+              "required": "<% df.r(qs.data,5,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q6FieldSet",
+          "visible": "<% df.v(qs.data,6) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q6Text",
+              "label": "<% df.l(qs.data,6) %>",
+              "visible": "<% df.t(qs.data,6)=='text' %>",
+              "required": "<% df.r(qs.data,6,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q6Guide",
+                "title": "<% df.l(qs.data,6) %>",
+                "text": "<% df.h(qs.data,6) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q6Number",
+              "label": "<% df.l(qs.data,6) %>",
+              "visible": "<% df.t(qs.data,6)=='number' %>",
+              "required": "<% df.r(qs.data,6,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,6) %>"
+            },
+            {
+              "type": "date",
+              "id": "q6Date",
+              "label": "<% df.l(qs.data,6) %>",
+              "visible": "<% df.t(qs.data,6)=='date' %>",
+              "required": "<% df.r(qs.data,6,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q6InstanceList",
+              "label": "<% df.l(qs.data,6) %>",
+              "visible": "<% df.t(qs.data,6)=='choice' %>",
+              "required": "<% df.r(qs.data,6,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,6) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q6CheckBox",
+              "label": "<% df.l(qs.data,6) %>",
+              "visible": "<% df.t(qs.data,6)=='yesno' %>",
+              "required": "<% df.r(qs.data,6,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q7FieldSet",
+          "visible": "<% df.v(qs.data,7) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q7Text",
+              "label": "<% df.l(qs.data,7) %>",
+              "visible": "<% df.t(qs.data,7)=='text' %>",
+              "required": "<% df.r(qs.data,7,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q7Guide",
+                "title": "<% df.l(qs.data,7) %>",
+                "text": "<% df.h(qs.data,7) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q7Number",
+              "label": "<% df.l(qs.data,7) %>",
+              "visible": "<% df.t(qs.data,7)=='number' %>",
+              "required": "<% df.r(qs.data,7,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,7) %>"
+            },
+            {
+              "type": "date",
+              "id": "q7Date",
+              "label": "<% df.l(qs.data,7) %>",
+              "visible": "<% df.t(qs.data,7)=='date' %>",
+              "required": "<% df.r(qs.data,7,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q7InstanceList",
+              "label": "<% df.l(qs.data,7) %>",
+              "visible": "<% df.t(qs.data,7)=='choice' %>",
+              "required": "<% df.r(qs.data,7,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,7) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q7CheckBox",
+              "label": "<% df.l(qs.data,7) %>",
+              "visible": "<% df.t(qs.data,7)=='yesno' %>",
+              "required": "<% df.r(qs.data,7,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q8FieldSet",
+          "visible": "<% df.v(qs.data,8) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q8Text",
+              "label": "<% df.l(qs.data,8) %>",
+              "visible": "<% df.t(qs.data,8)=='text' %>",
+              "required": "<% df.r(qs.data,8,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q8Guide",
+                "title": "<% df.l(qs.data,8) %>",
+                "text": "<% df.h(qs.data,8) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q8Number",
+              "label": "<% df.l(qs.data,8) %>",
+              "visible": "<% df.t(qs.data,8)=='number' %>",
+              "required": "<% df.r(qs.data,8,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,8) %>"
+            },
+            {
+              "type": "date",
+              "id": "q8Date",
+              "label": "<% df.l(qs.data,8) %>",
+              "visible": "<% df.t(qs.data,8)=='date' %>",
+              "required": "<% df.r(qs.data,8,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q8InstanceList",
+              "label": "<% df.l(qs.data,8) %>",
+              "visible": "<% df.t(qs.data,8)=='choice' %>",
+              "required": "<% df.r(qs.data,8,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,8) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q8CheckBox",
+              "label": "<% df.l(qs.data,8) %>",
+              "visible": "<% df.t(qs.data,8)=='yesno' %>",
+              "required": "<% df.r(qs.data,8,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q9FieldSet",
+          "visible": "<% df.v(qs.data,9) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q9Text",
+              "label": "<% df.l(qs.data,9) %>",
+              "visible": "<% df.t(qs.data,9)=='text' %>",
+              "required": "<% df.r(qs.data,9,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q9Guide",
+                "title": "<% df.l(qs.data,9) %>",
+                "text": "<% df.h(qs.data,9) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q9Number",
+              "label": "<% df.l(qs.data,9) %>",
+              "visible": "<% df.t(qs.data,9)=='number' %>",
+              "required": "<% df.r(qs.data,9,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,9) %>"
+            },
+            {
+              "type": "date",
+              "id": "q9Date",
+              "label": "<% df.l(qs.data,9) %>",
+              "visible": "<% df.t(qs.data,9)=='date' %>",
+              "required": "<% df.r(qs.data,9,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q9InstanceList",
+              "label": "<% df.l(qs.data,9) %>",
+              "visible": "<% df.t(qs.data,9)=='choice' %>",
+              "required": "<% df.r(qs.data,9,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,9) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q9CheckBox",
+              "label": "<% df.l(qs.data,9) %>",
+              "visible": "<% df.t(qs.data,9)=='yesno' %>",
+              "required": "<% df.r(qs.data,9,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "q10FieldSet",
+          "visible": "<% df.v(qs.data,10) %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "q10Text",
+              "label": "<% df.l(qs.data,10) %>",
+              "visible": "<% df.t(qs.data,10)=='text' %>",
+              "required": "<% df.r(qs.data,10,'text') %>",
+              "onChange": "<% refresh() %>",
+              "guide": {
+                "type": "guide",
+                "id": "q10Guide",
+                "title": "<% df.l(qs.data,10) %>",
+                "text": "<% df.h(qs.data,10) %>"
+              }
+            },
+            {
+              "type": "number",
+              "id": "q10Number",
+              "label": "<% df.l(qs.data,10) %>",
+              "visible": "<% df.t(qs.data,10)=='number' %>",
+              "required": "<% df.r(qs.data,10,'number') %>",
+              "onChange": "<% refresh() %>",
+              "enabled": "<% !df.c(qs.data,10) %>"
+            },
+            {
+              "type": "date",
+              "id": "q10Date",
+              "label": "<% df.l(qs.data,10) %>",
+              "visible": "<% df.t(qs.data,10)=='date' %>",
+              "required": "<% df.r(qs.data,10,'date') %>",
+              "onChange": "<% refresh() %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "q10InstanceList",
+              "label": "<% df.l(qs.data,10) %>",
+              "visible": "<% df.t(qs.data,10)=='choice' %>",
+              "required": "<% df.r(qs.data,10,'choice') %>",
+              "onChange": "<% refresh() %>",
+              "values": "<% df.o(qs.data,10) %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "q10CheckBox",
+              "label": "<% df.l(qs.data,10) %>",
+              "visible": "<% df.t(qs.data,10)=='yesno' %>",
+              "required": "<% df.r(qs.data,10,'yesno') %>",
+              "onChange": "<% refresh() %>"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

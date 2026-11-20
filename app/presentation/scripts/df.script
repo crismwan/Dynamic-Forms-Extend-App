@@ -1,0 +1,623 @@
+var sorted = function(d) {
+  list:sort(d ?? [], 'sortOrder', true);
+};
+
+var copyQ = function(x, ord) {
+  var m = {:};
+  m.addAll(x);
+  m.put('sortOrder', ord);
+  m;
+};
+
+var childQ = function(y, parent, ord) {
+  var m = copyQ(y, ord);
+  m.put('pKey', parent.showKey ?? '');
+  m.put('pOp', parent.showOp ?? 'eq');
+  m.put('pValue', parent.showValue ?? '');
+  m;
+};
+
+var subCode = function(d, n) {
+  var subs = sorted(d).filter(x => { (x.qType ?? '') == 'subform' || (x.qType ?? '') == 'repeat' });
+  subs.size() >= n ? ('' + (subs.get(n - 1).qOptions ?? '')).trim() : '';
+};
+
+// a repeating group (qType repeat, 2026-11-19): qOptions = the sub-form whose questions repeat, params =
+// "count=<key of a number question>;max=<n>". Copy k of each question gets key <key>_<k>, label "<label> (k)", rules
+// between the group's own questions renamed to copy k, and shows only while the count question's answer is k or more.
+// baseKey and rowNumber carry the original key and k, so answers are saved as qKey + rowNumber.
+var par = function(x, name) {
+  var raw = ';' + ('' + (x.params ?? '')).replace(' ', '') + ';';
+  raw.contains(';' + name + '=') ? raw.substringAfter(';' + name + '=').substringBefore(';') : '';
+};
+
+var repQ = function(y, parent, k, keys, ord) {
+  var m = copyQ(y, ord);
+  var key = y.qKey ?? '';
+  m.put('qKey', key + '_' + k);
+  m.put('baseKey', key);
+  m.put('rowNumber', k);
+  m.put('qLabel', (y.qLabel ?? key) + ' (' + k + ')');
+  var sk = y.showKey ?? '';
+  if (!empty(sk) && keys.contains(sk)) { m.put('showKey', sk + '_' + k); }
+  m.put('pKey', par(parent, 'count'));
+  m.put('pOp', 'ge');
+  m.put('pValue', '' + k);
+  m;
+};
+
+// a repeating group's count above its max: the extra copies can't be shown, so say so on the count box (2026-11-19:
+// 9 showed 4 copies with no message). Returns 'na' (not a count), 'ok', or the message.
+var overMax = function(d, key, val) {
+  var top = 0;
+  for (var x : (d ?? [])) { if ((x.pKey ?? '') == key && !empty(key) && (x.rowNumber ?? 0) > top) { top = x.rowNumber; } }
+  top == 0 ? 'na' : ((!empty(val) && ('' + val).isNumber() && ('' + val).toDecimal() > top) ? ('At most ' + top + ' here; only ' + top + ' can be entered.') : 'ok');
+};
+var expand = function(d, s1, s2, s3) {
+  var kids = [s1 ?? [], s2 ?? [], s3 ?? []];
+  var out = [];
+  var n = 0;
+  var ord = 0;
+  for (var x : sorted(d)) {
+    var ty = x.qType ?? '';
+    if (ty == 'repeat') {
+      n = n + 1;
+      if (n <= 3) {
+        var rk = sorted(kids.get(n - 1)).filter(y => { (y.qType ?? '') != 'subform' && (y.qType ?? '') != 'nextform' && (y.qType ?? '') != 'repeat' });
+        var rkeys = rk.map(y => { y.qKey ?? '' });
+        var mx = par(x, 'max');
+        var top = empty(mx) ? 3 : ('' + mx).toInt();
+        for (var kk : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+          if (kk <= top) { for (var y2 : rk) { ord = ord + 1; out.add(repQ(y2, x, kk, rkeys, ord)); } }
+        }
+      }
+    }
+    if (ty == 'subform') {
+      n = n + 1;
+      if (n <= 3) {
+        for (var y : sorted(kids.get(n - 1))) {
+          var yt = y.qType ?? '';
+          if (yt != 'subform' && yt != 'nextform') { ord = ord + 1; out.add(childQ(y, x, ord)); }
+        }
+      }
+    } else {
+      if (ty != 'nextform' && ty != 'repeat') { ord = ord + 1; out.add(copyQ(x, ord)); }
+    }
+  }
+  out;
+};
+
+var q = function(d, i) {
+  var s = sorted(d);
+  s.size() >= i ? s.get(i - 1) : {:};
+};
+
+var k = function(d, i) {
+  q(d, i).qKey ?? '';
+};
+
+var t = function(d, i) {
+  q(d, i).qType ?? '';
+};
+
+var l = function(d, i) {
+  q(d, i).qLabel ?? '';
+};
+
+// the label in the user's language: labels holds compact JSON {"fr-CA":"..."}; lang comes from the page (a text whose
+// translated label is the language code), falling back to qLabel
+var ll = function(d, i, lang) {
+  var raw = '' + (q(d, i).labels ?? '');
+  var tag = '"' + (lang ?? '') + '":"';
+  (empty(lang) || raw.indexOf(tag) < 0) ? l(d, i) : raw.substringAfter(tag).substringBefore('"');
+};
+
+var sec = function(d, i) {
+  q(d, i).confidential == true;
+};
+
+var h = function(d, i) {
+  q(d, i).help ?? '';
+};
+
+var wi = function(d, i) {
+  var ty = t(d, i);
+  ty == 'text' ? 1 : (ty == 'number' ? 2 : (ty == 'date' ? 3 : (ty == 'choice' ? 4 : (ty == 'yesno' ? 5 : 0))));
+};
+
+var req = function(d, i) {
+  q(d, i).required ?? false;
+};
+
+var c = function(d, i) {
+  !empty(q(d, i).calc);
+};
+
+var str = function(v) {
+  empty(v) ? '' : '' + v;
+};
+
+var num = function(v) {
+  empty(v) ? 0 : ('' + v).toDecimal();
+};
+
+var cond = function(key, op, val, ans) {
+  var cur = str(ans.get(key));
+  empty(key) ? true : (op == 'filled' ? !empty(cur) : (op == 'ne' ? cur != (val ?? '') : (op == 'ge' ? (!empty(cur) && num(cur) >= num(val)) : cur == (val ?? ''))));
+};
+
+var show = function(d, i, ans) {
+  var x = q(d, i);
+  cond(x.showKey ?? '', x.showOp ?? 'eq', x.showValue ?? '', ans) && cond(x.pKey ?? '', x.pOp ?? 'eq', x.pValue ?? '', ans);
+};
+
+var nextForm = function(d, ans) {
+  var hits = sorted(d).filter(x => { (x.qType ?? '') == 'nextform' && cond(x.showKey ?? '', x.showOp ?? 'eq', x.showValue ?? '', ans) });
+  hits.size() > 0 ? ('' + (hits.get(0).qOptions ?? '')).trim() : '';
+};
+
+var v = function(d, i) {
+  !empty(k(d, i)) && show(d, i, {:});
+};
+
+var r = function(d, i, ty) {
+  t(d, i) == ty && req(d, i) && v(d, i);
+};
+
+var o = function(d, i) {
+  var raw = q(d, i).qOptions ?? '';
+  empty(raw) ? [] : raw.split('|').map(p => { { 'id': p.substringBefore('='), 'descriptor': p.substringAfter('=') } });
+};
+
+var pick = function(d, i, vals) {
+  var n = wi(d, i);
+  var raw = n > 0 ? vals.get(n - 1) : null;
+  n == 3 ? (empty(raw) ? null : raw.format('yyyy-MM-dd')) : (n == 4 ? (empty(raw) ? null : raw.get(0)) : (n == 5 ? (raw == true ? 'true' : 'false') : raw));
+};
+
+var shownKey = function(d, key, ans) {
+  var i = sorted(d).map(x => { x.qKey ?? '' }).indexOf(key);
+  i >= 0 && show(d, i + 1, ans);
+};
+
+var calcVal = function(d, i, ans) {
+  var spec = q(d, i).calc ?? '';
+  var keys = spec.substringAfter('sum:').split(',');
+  keys.map(x => { shownKey(d, x.trim(), ans) ? num(ans.get(x.trim())) : 0 }).reduce((a, b) => { a + b });
+};
+
+var answers = function(d, ans, responseKey, formCode) {
+  var out = [];
+  var i = 0;
+  for (var x : sorted(d)) {
+    i = i + 1;
+    var key = x.qKey ?? '';
+    var val = ans.get(key);
+    if (!empty(key) && !empty(val) && show(d, i, ans)) {
+      var m = {:};
+      m.put('responseKey', responseKey);
+      m.put('formCode', formCode);
+      m.put('qKey', key);
+      m.put('rowNumber', 1);
+      if (x.confidential == true) { m.put('secretText', '' + val); }
+      if (x.confidential != true && x.qType == 'number') { m.put('numberValue', val); }
+      if (x.confidential != true && x.qType == 'date') { m.put('dateValue', val); }
+      if (x.confidential != true && x.qType != 'number' && x.qType != 'date') { m.put('textValue', '' + val); }
+      out.add(m);
+    }
+  }
+  out;
+};
+
+var qmap = function(code, n, key, ty, label, required, opts, showKey, showOp, showValue, calc, help) {
+  var m = {:};
+  m.put('formCode', code);
+  m.put('sortOrder', n);
+  m.put('qKey', key);
+  m.put('qType', ty);
+  m.put('qLabel', label);
+  m.put('required', required);
+  if (!empty(opts)) { m.put('qOptions', opts); }
+  if (!empty(showKey)) { m.put('showKey', showKey); m.put('showOp', showOp); m.put('showValue', showValue); }
+  if (!empty(calc)) { m.put('calc', calc); }
+  if (!empty(help)) { m.put('help', help); }
+  m;
+};
+
+var sample = function(which, count) {
+  var code = which == 'big' ? 'TEST:DYN:BIG' : 'TEST:DYN:SMALL';
+  var out = [];
+  if (which != 'big') {
+    out.add(qmap(code, 1, 'hasPosition', 'choice', 'Do you manage a position?', true, 'yes=Yes|no=No', '', '', '', '', ''));
+    out.add(qmap(code, 2, 'positionCount', 'number', 'How many positions?', true, '', 'hasPosition', 'eq', 'yes', '', ''));
+    out.add(qmap(code, 3, 'budget', 'number', 'Extra budget', false, '', '', '', '', '', ''));
+    out.add(qmap(code, 4, 'total', 'number', 'Total (positions + budget)', false, '', '', '', '', 'sum:positionCount,budget', ''));
+    out.add(qmap(code, 5, 'startDate', 'date', 'Start date', false, '', '', '', '', '', 'Pick the first day.'));
+    out.add(qmap(code, 6, 'notes', 'text', 'Notes about the start', false, '', 'startDate', 'filled', '', '', 'Shown once a start date is picked.'));
+    out.add(qmap(code, 7, 'confirm', 'yesno', 'I confirm this is test data', false, '', '', '', '', '', ''));
+  }
+  out;
+};
+
+var lk = function(d, i) {
+  q(d, i).lookup ?? '';
+};
+
+var uses = function(d, key) {
+  (d ?? []).map(x => { x.lookup ?? '' }).contains(key);
+};
+
+var wk = function(d, i) {
+  var ty = t(d, i);
+  var key = lk(d, i);
+  ty == 'lookup' ? ((key == 'workers' || key == 'positions' || key == 'orgs' || key == 'domains') ? 'browse' : 'lookup') : ty;
+};
+
+// one call per widget attribute (2026-11-19, page size): shown as this kind / required as this kind
+var sw = function(d, i, kind) {
+  wk(d, i) == kind;
+};
+
+var rq = function(d, i, kind) {
+  wk(d, i) == kind && req(d, i) && v(d, i);
+};
+
+var rxErr = function(d, i, v) {
+  var rx = q(d, i).regex ?? '';
+  var msg = q(d, i).regexMessage ?? '';
+  (empty(rx) || empty(v)) ? '' : (validate:match(rx, '' + v) ? '' : (empty(msg) ? 'Not in the expected format.' : msg));
+};
+
+var pre = function(d, i, w) {
+  var key = q(d, i).prefill ?? '';
+  var loc = empty(w) ? {:} : (w.location ?? {:});
+  empty(w) ? '' : (key == 'name' ? (w.descriptor ?? '') : (key == 'title' ? (w.businessTitle ?? '') : (key == 'location' ? (loc.descriptor ?? '') : (key == 'email' ? (w.primaryWorkEmail ?? '') : ''))));
+};
+
+var preSel = function(d, i, w) {
+  var key = q(d, i).prefill ?? '';
+  var org = empty(w) ? {:} : (w.primarySupervisoryOrganization ?? {:});
+  key == 'org' && !empty(org.id) ? [{ 'id': org.id, 'descriptor': org.descriptor ?? '' }] : [];
+};
+
+var posName = function(x) {
+  (x.positionID ?? '') + ' ' + (x.positionTitle ?? '') + (empty(x.worker) ? ' (Unfilled)' : ' - ' + (x.worker.descriptor ?? ''));
+};
+
+var ref2 = function(id, desc) {
+  var m = {:};
+  m.put('id', id);
+  m.put('descriptor', desc);
+  m;
+};
+
+var pItem = function(x) {
+  var m = {:};
+  m.put('id', x.workdayID);
+  m.put('descriptor', posName(x));
+  m;
+};
+
+var pKey = function(x, by) {
+  var o = by == 'byOrg' ? x.supervisoryOrganization : (by == 'byManager' ? x.manager : x.location);
+  empty(o) ? '(none)' : ('' + (o.descriptor ?? '(none)'));
+};
+
+var pGroups = function(rows, by) {
+  var keys = rows.map(x => { pKey(x, by) }).sort();
+  var out = [];
+  var last = '';
+  for (var g : keys) {
+    if (g != last) {
+      var m = {:};
+      m.put('id', 'g:' + g);
+      m.put('descriptor', g + '  (' + (keys.lastIndexOf(g) - keys.indexOf(g) + 1) + ')');
+      out.add(m);
+      last = g;
+    }
+  }
+  out;
+};
+
+var pRoot = function(rows) {
+  var n = rows.filter(x => { empty(x.worker) }).size();
+  var out = [];
+  out.add(ref2('byOrg', 'By organization'));
+  out.add(ref2('byManager', 'By manager'));
+  out.add(ref2('byLocation', 'By location'));
+  out.add(ref2('unfilled', 'Unfilled positions  (' + n + ')'));
+  out;
+};
+
+var pLevel = function(rows, sel) {
+  var by = empty(sel) ? '' : sel[0];
+  var two = empty(sel) ? false : sel.size() > 1;
+  var g = two ? sel[1] : '';
+  by == 'unfilled' ? [rows.filter(x => { empty(x.worker) }).map(x => { pItem(x) }), false] :
+    (two ? [rows.filter(x => { ('g:' + pKey(x, by)) == g }).map(x => { pItem(x) }), false] : [pGroups(rows, by), true]);
+};
+
+var pFind = function(rows, q) {
+  var s = ('' + (q ?? '')).lowerCase().trim();
+  empty(s) ? [] : rows.filter(x => { posName(x).lowerCase().contains(s) || pKey(x, 'byOrg').lowerCase().contains(s) || pKey(x, 'byManager').lowerCase().contains(s) }).map(x => { pItem(x) });
+};
+
+var opts = function(d, i, orgs, positions, domains) {
+  var key = lk(d, i);
+  key == 'orgs' ? (orgs ?? []).map(x => { { 'id': x.workdayID, 'descriptor': x.name ?? '' } }) :
+  (key == 'positions' ? (positions ?? []).map(x => { { 'id': x.workdayID, 'descriptor': posName(x) } }) :
+  (key == 'domains' ? (domains ?? []).map(x => { { 'id': x.workdayID, 'descriptor': x.domainName ?? '' } }) : []));
+};
+
+var clean = function(s) {
+  ('' + (s ?? '')).replace('\'', '').replace('%5C'.urlDecode(), '').trim();
+};
+
+var wmap = function(res) {
+  (res ?? []).filter(x => { !empty(x.worker) }).map(x => { { 'id': x.worker.id, 'descriptor': x.worker.descriptor ?? '' } });
+};
+
+var ref = function(id) {
+  var m = {:};
+  m.put('id', id);
+  m;
+};
+
+var pick2 = function(d, i, vals) {
+  var kind = wk(d, i);
+  kind == 'text' ? vals[0] : (kind == 'number' ? vals[1] : (kind == 'date' ? (empty(vals[2]) ? null : vals[2].format('yyyy-MM-dd')) :
+    (kind == 'choice' ? (empty(vals[3]) ? null : vals[3][0]) : (kind == 'yesno' ? (vals[4] == true ? 'true' : 'false') :
+      (kind == 'lookup' ? (empty(vals[5]) ? null : vals[5][0]) : (kind == 'search' ? (empty(vals[6]) ? null : vals[6][0]) : (kind == 'browse' ? (empty(vals[7]) ? null : vals[7][0]) : null)))))));
+};
+
+var wi2 = function(d, i) {
+  var kind = wk(d, i);
+  kind == 'number' ? 2 : (kind == 'date' ? 3 : (kind == 'choice' ? 4 : (kind == 'yesno' ? 5 : (kind == 'lookup' ? 6 : (kind == 'search' ? 7 : (kind == 'browse' ? 8 : 1))))));
+};
+
+var lanswers = function(d, rows, responseKey, formCode, ans) {
+  var out = [];
+  var i = 0;
+  for (var row : rows) {
+    i = i + 1;
+    var key = k(d, i);
+    var kind = show(d, i, ans) ? wk(d, i) : 'hidden';
+    var m = {:};
+    m.put('responseKey', responseKey);
+    m.put('formCode', q(d, i).formCode ?? formCode);
+    m.put('qKey', q(d, i).baseKey ?? key);
+    m.put('rowNumber', q(d, i).rowNumber ?? 1);
+    // a confidential answer of any type goes only to secretText (the DynConfidential field), never to the open
+    // value fields that the gate, comments and reports read (2026-11-19: numbers, dates and yes/no used to bypass it)
+    var hide = sec(d, i);
+    if (kind == 'text' && !empty(row[0])) { m.put(hide ? 'secretText' : 'textValue', '' + row[0]); out.add(m); }
+    if (kind == 'number' && !empty(row[5])) { if (hide) { m.put('secretText', '' + row[5]); } else { m.put('numberValue', row[5]); } out.add(m); }
+    if (kind == 'date' && !empty(row[6])) { m.put(hide ? 'secretText' : 'dateValue', row[6].format('yyyy-MM-dd')); out.add(m); }
+    if (kind == 'choice' && !empty(row[7])) { m.put(hide ? 'secretText' : 'textValue', row[7][0]); out.add(m); }
+    if (kind == 'yesno' && !empty(key)) { m.put(hide ? 'secretText' : 'textValue', row[8] == true ? 'true' : 'false'); out.add(m); }
+    var ids = hide ? [] : (kind == 'lookup' ? row[1] : (kind == 'search' ? row[3] : (kind == 'browse' ? row[9] : [])));
+    var hents = kind == 'lookup' ? row[2] : (kind == 'search' ? row[4] : (kind == 'browse' ? row[10] : []));
+    if (hide && !empty(hents)) { m.put('secretText', hents[0].descriptor ?? ''); out.add(m); }
+    var ents = kind == 'lookup' ? row[2] : (kind == 'search' ? row[4] : (kind == 'browse' ? row[10] : []));
+    if (!empty(ids)) {
+      var id = ids[0];
+      var desc = empty(ents) ? '' : (ents[0].descriptor ?? '');
+      m.put('refId', id);
+      m.put('refDescriptor', desc);
+      m.put('textValue', desc);
+      var src = lk(d, i);
+      if (src == 'orgs') { m.put('organization', ref(id)); }
+      if (src == 'positions') { m.put('position', ref(id)); }
+      if (src == 'workers') { m.put('worker', ref(id)); }
+      out.add(m);
+    }
+  }
+  out;
+};
+
+// ---- copying forms (2026-11-18): keys stay unique in the target, rules and sums follow renamed keys ----
+var newKey = function(key, taken) {
+  var out = key;
+  if (taken.contains(key)) {
+    out = '';
+    for (var n : [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) { if (empty(out) && !taken.contains(key + '_' + n)) { out = key + '_' + n; } }
+  }
+  out;
+};
+
+var fRow = function(forms, code) {
+  var i = (forms ?? []).map(f => { f.code ?? '' }).indexOf(code);
+  i < 0 ? {:} : forms.get(i);
+};
+
+var family = function(forms, code) {
+  var f = fRow(forms, code);
+  empty(f.family) ? code : f.family;
+};
+
+var cpCode = function(mode, src, tgt, typed, forms) {
+  var fam = family(forms, src);
+  var vs = (forms ?? []).filter(f => { (empty(f.family) ? (f.code ?? '') : f.family) == fam }).map(f => { f.version ?? 1 });
+  var top = vs.size() == 0 ? 1 : vs.reduce((a, b) => { a > b ? a : b });
+  mode == 'add' ? (tgt ?? '') : (mode == 'version' ? fam + '@' + ('' + (top + 1)).substringBefore('.') : (mode == 'publish' ? src : ('' + (typed ?? '')).trim()));
+};
+
+var cpVersion = function(mode, src, forms) {
+  var fam = family(forms, src);
+  var vs = (forms ?? []).filter(f => { (empty(f.family) ? (f.code ?? '') : f.family) == fam }).map(f => { f.version ?? 1 });
+  mode == 'version' ? (vs.size() == 0 ? 2 : vs.reduce((a, b) => { a > b ? a : b }) + 1) : 1;
+};
+
+var cpPlan = function(src, picked, tgt, code, mode, sizes) {
+  var taken = [];
+  if (mode == 'add') { for (var t0 : (tgt ?? [])) { taken.add(t0.qKey ?? ''); } }
+  var rows = sorted(src).filter(x => { mode != 'add' || empty(picked) || picked.contains(x.qKey ?? '') });
+  var ren = {:};
+  var notes = [];
+  for (var x : rows) {
+    var key = x.qKey ?? '';
+    var nk = newKey(key, taken);
+    taken.add(nk);
+    ren.put(key, nk);
+    if (nk != key) { notes.add('Renamed ' + key + ' to ' + nk + ' (the form already has ' + key + ').'); }
+  }
+  var base = mode == 'add' ? (tgt ?? []).size() : 0;
+  var out = [];
+  var i = 0;
+  for (var x : rows) {
+    i = i + 1;
+    var m = {:};
+    for (var f : ['qType', 'qLabel', 'help', 'required', 'qOptions', 'showOp', 'showValue', 'lookup', 'prefill', 'regex', 'regexMessage', 'dataSource', 'sourceField', 'targetField', 'params', 'labels', 'confidential']) { var val = x.get(f); if (val != null) { m.put(f, val); } }
+    m.put('formCode', code);
+    m.put('sortOrder', base + i);
+    m.put('qKey', ren.get(x.qKey ?? ''));
+    var sk = x.showKey ?? '';
+    if (!empty(sk)) {
+      m.put('showKey', ren.containsKey(sk) ? ren.get(sk) : sk);
+      if (ren.containsKey(sk) && ren.get(sk) != sk) { notes.add('Rule on ' + ren.get(x.qKey ?? '') + ' now reads ' + ren.get(sk) + '.'); }
+      if (!ren.containsKey(sk)) { notes.add('Rule on ' + ren.get(x.qKey ?? '') + ' reads ' + sk + ', which was not copied.'); }
+    }
+    var cl = x.calc ?? '';
+    if (!empty(cl)) {
+      var parts = cl.substringAfter('sum:').split(',').map(p => { ren.containsKey(p.trim()) ? ren.get(p.trim()) : p.trim() });
+      m.put('calc', 'sum:' + parts.join(','));
+      if (('sum:' + parts.join(',')) != cl) { notes.add('Sum on ' + ren.get(x.qKey ?? '') + ' now reads ' + parts.join(', ') + '.'); }
+      for (var pk : cl.substringAfter('sum:').split(',')) { if (!ren.containsKey(pk.trim()) && !taken.contains(pk.trim())) { notes.add('Sum on ' + ren.get(x.qKey ?? '') + ' reads ' + pk.trim() + ', which is not in the form.'); } }
+    }
+    var pc = par(x, 'count');
+    if (!empty(pc)) {
+      var npc = ren.containsKey(pc) ? ren.get(pc) : pc;
+      m.put('params', 'count=' + npc + (empty(par(x, 'max')) ? '' : ';max=' + par(x, 'max')));
+      if (npc != pc) { notes.add('Repeating group ' + ren.get(x.qKey ?? '') + ' now counts ' + npc + '.'); }
+      if (!ren.containsKey(pc) && !taken.contains(pc)) { notes.add('Repeating group ' + ren.get(x.qKey ?? '') + ' counts ' + pc + ', which is not in the form.'); }
+    }
+    var lk0 = x.lookup ?? '';
+    if (!empty(lk0) && !['orgs', 'positions', 'domains', 'workers'].contains(lk0)) { notes.add('Lookup ' + lk0 + ' on ' + ren.get(x.qKey ?? '') + ' is not an approved source here.'); }
+    var qt0 = x.qType ?? '';
+    if (!['text', 'number', 'date', 'choice', 'yesno', 'lookup', 'subform', 'nextform', 'repeat'].contains(qt0)) { notes.add('Question ' + ren.get(x.qKey ?? '') + ' has type ' + qt0 + ', which the fill page does not show (use text, number, date, choice, yesno, lookup, subform, repeat or nextform).'); }
+    out.add(m);
+  }
+  // the fill page has a fixed pool of question slots and takes up to 3 sub-forms (acceptance copy test, 2026-11-19)
+  var allQ = [];
+  if (mode == 'add') { allQ.addAll(tgt ?? []); }
+  allQ.addAll(out);
+  var subN = allQ.filter(x => { (x.qType ?? '') == 'subform' || (x.qType ?? '') == 'repeat' }).size();
+  var plainN = allQ.filter(x => { (x.qType ?? '') != 'subform' && (x.qType ?? '') != 'nextform' && (x.qType ?? '') != 'repeat' }).size();
+  // slots the fill page needs: plain questions, each sub-form's questions, and max copies of each repeating group's
+  // questions (sizes = question count per sub-form code, looked up by the page; unknown counts as 1)
+  var slotN = plainN;
+  for (var y : allQ) {
+    var yt = y.qType ?? '';
+    var ysz = (sizes ?? {:}).containsKey(y.qOptions ?? '') ? sizes.get(y.qOptions ?? '') : 1;
+    if (yt == 'subform') { slotN = slotN + ysz; }
+    if (yt == 'repeat') { var mx = par(y, 'max'); slotN = slotN + ysz * (empty(mx) ? 1 : mx.toInt()); }
+  }
+  if (slotN > 30) { notes.add('Warning: the form needs ' + slotN + ' question slots (sub-form questions and every repeating copy count), but the fill page shows 30; the rest will not appear. Lower a repeating group\'s max or split the form.'); }
+  if (slotN <= 30 && subN > 0) { notes.add('The fill page will use ' + slotN + ' of its 30 question slots, counting sub-form questions and every repeating copy.'); }
+  if (subN > 3) { notes.add('Warning: the form will have ' + subN + ' sub-forms or repeating groups; the fill page shows the first 3.'); }
+  var res = {:};
+  res.put('rows', out);
+  res.put('summary', (empty(code) ? 'Pick the form and the new code. ' : '') + out.size() + ' questions to ' + code + '. ' + (notes.size() == 0 ? 'No keys or rules changed.' : notes.join(' ')));
+  res;
+};
+
+var cpExport = function(forms, src, qs) {
+  var f = fRow(forms, src);
+  var m = {:};
+  m.put('code', src);
+  m.put('formName', f.formName ?? '');
+  m.put('version', f.version ?? 1);
+  m.put('questions', cpPlan(qs, [], [], src, 'copy', {:}).rows);
+  json:stringify(m);
+};
+
+var cpImport = function(text) {
+  var m = empty(text) ? {:} : json:parse(text);
+  var res = {:};
+  res.put('code', m.code ?? '');
+  res.put('formName', m.formName ?? '');
+  res.put('questions', m.questions ?? []);
+  res;
+};
+
+// open assignments and next forms nobody has filled yet. Was a filter inside a filter (every row against every row),
+// which failed the Results page once there were ~450 responses (2026-11-19); the parent keys are joined once and
+// each row looks itself up in that text.
+// answer rows with their response's and question's WIDs looked up once per row (cells looked them up three times
+// each, mapping every response and question every time: most of the Results page's 8 s, 2026-11-19)
+var tag = function(rows, resps, qs) {
+  var rk = (resps ?? []).map(x => { '' + (x.responseKey ?? '') });
+  var qk = (qs ?? []).map(x => { (x.formCode ?? '') + '|' + (x.qKey ?? '') });
+  (rows ?? []).map(r => {
+    var i = rk.indexOf('' + (r.responseKey ?? ''));
+    var j = qk.indexOf((r.formCode ?? '') + '|' + (r.qKey ?? ''));
+    var m = { 'responseKey': r.responseKey, 'formCode': r.formCode, 'qKey': r.qKey, 'textValue': r.textValue, 'secretText': r.secretText,
+       'numberValue': r.numberValue, 'dateValue': r.dateValue, 'refDescriptor': r.refDescriptor, 'organization': r.organization,
+       'position': r.position, 'worker': r.worker,
+       'rw': i < 0 ? '' : ('' + (resps.get(i).workdayID ?? '')), 'qw': j < 0 ? '' : ('' + (qs.get(j).workdayID ?? '')) };
+    m;
+  });
+};
+var cap = function(rows, n) {
+  (rows ?? []).size() > n ? rows.subList(0, n) : (rows ?? []);
+};
+var pending = function(rows) {
+  var parents = '|' + (rows ?? []).map(c => { '' + (c.parentKey ?? '') }).join('|') + '|';
+  (rows ?? []).filter(r => { !empty(r.nextForm) && !('' + (r.status ?? '')).startsWith('Closed') && !parents.contains('|' + (r.responseKey ?? '') + '|') });
+};
+
+var widOf = function(rows, field, value) {
+  var keys = (rows ?? []).map(x => { '' + (x[field] ?? '') });
+  var i = keys.indexOf('' + (value ?? ''));
+  (empty(value) || i < 0) ? '' : ('' + (rows.get(i).workdayID ?? (rows.get(i).id ?? '')));
+};
+
+// Form column: the form record, or for BP/GATE/ROUTE records (no form of that code) the business process event.
+var formWid = function(forms, r) {
+  var w = widOf(forms, 'code', r.formCode);
+  !empty(w) ? w : ('' + (r.bpEvent ?? ''));
+};
+
+// Status column: the business process event when the record came from one, otherwise the response record itself.
+var statusWid = function(r) {
+  !empty(r.bpEvent) ? ('' + r.bpEvent) : ('' + (r.workdayID ?? ''));
+};
+
+// Subject column: the response's subject, or for an assignment (BP record) the process target it stored as text;
+// its name is the end of the status ("Assigned: Absence Request: Logan McNeil").
+var subjWid = function(r) {
+  !empty(r.subject) ? ('' + (r.subject.id ?? '')) : ('' + (r.bpTarget ?? ''));
+};
+var subjName = function(r) {
+  !empty(r.subject) ? ('' + (r.subject.descriptor ?? '')) : (empty(r.bpTarget) ? '' : ('' + (r.status ?? '')).substringAfterLast(': '));
+};
+
+// Question column of the answers grid: the question record (same form code and question key).
+var qWid = function(qs, a) {
+  var keys = (qs ?? []).map(x => { (x.formCode ?? '') + '|' + (x.qKey ?? '') });
+  var i = keys.indexOf((a.formCode ?? '') + '|' + (a.qKey ?? ''));
+  i < 0 ? '' : ('' + (qs.get(i).workdayID ?? ''));
+};
+
+var resQ = function(form, kind) {
+  var f = ('' + (form ?? '')).replace('\'', '').replace('\\', '');
+  var cols = kind == 'answers' ? 'responseKey, formCode, qKey, textValue, secretText, numberValue, dateValue, refDescriptor, organization, position, worker' : 'workdayID, responseKey, formCode, status, subject, parentKey, nextForm, bpEvent, bpTarget';
+  var src = kind == 'answers' ? 'developertoolkitappv1_kwswrv_dynAnswers' : 'developertoolkitappv1_kwswrv_dynResponses';
+  // responses: all of them, so a follow-up filled from another form still marks its parent done; answers: only the
+  // form's own when a form is picked (a page reading every answer took 17-19 s once there were ~450 responses).
+  'SELECT ' + cols + ' FROM ' + src + ' ORDER BY responseKey DESC';
+};
+// answers of the responses on show, by response key: a form's sub-form and repeat answers carry the sub-form's code,
+// so filtering answers by formCode dropped them (2026-11-19). More than 50 keys: no filter (100 keys made the query
+// too long and failed the page), up to 10,000 answers.
+var ansQ = function(keys) {
+  var ks = (keys ?? []).map(k => { '"' + ('' + (k ?? '')).replace('"', '').replace('\\', '') + '"' });
+  var w = ks.size() == 0 ? ' WHERE responseKey = "-"' : (ks.size() <= 50 ? (' WHERE responseKey in (' + ks.join(', ') + ')') : '');
+  'SELECT responseKey, formCode, qKey, textValue, secretText, numberValue, dateValue, refDescriptor, organization, position, worker FROM developertoolkitappv1_kwswrv_dynAnswers' + w + ' ORDER BY responseKey DESC';
+};
+
+{
+  "q": q, "k": k, "t": t, "l": l, "ll": ll, "sec": sec, "h": h, "wi": wi, "req": req, "c": c, "str": str, "show": show, "v": v, "r": r, "o": o,
+  "pick": pick, "num": num, "shownKey": shownKey, "calcVal": calcVal, "answers": answers, "qmap": qmap, "sample": sample,
+  "lk": lk, "uses": uses, "wk": wk, "rxErr": rxErr, "pick2": pick2, "wi2": wi2, "pre": pre, "preSel": preSel, "posName": posName, "ref2": ref2, "pItem": pItem, "pKey": pKey, "pGroups": pGroups, "pRoot": pRoot, "pLevel": pLevel, "pFind": pFind, "opts": opts, "clean": clean, "wmap": wmap, "ref": ref, "lanswers": lanswers, "resQ": resQ, "ansQ": ansQ, "widOf": widOf, "formWid": formWid, "statusWid": statusWid, "subjWid": subjWid, "subjName": subjName, "qWid": qWid, "pending": pending, "cap": cap, "tag": tag, "copyQ": copyQ, "newKey": newKey, "fRow": fRow, "family": family, "cpCode": cpCode, "cpVersion": cpVersion, "cpPlan": cpPlan, "cpExport": cpExport, "cpImport": cpImport, "childQ": childQ, "par": par, "repQ": repQ, "sw": sw, "rq": rq, "subCode": subCode, "overMax": overMax, "expand": expand, "ex": expand, "cond": cond, "nextForm": nextForm
+}

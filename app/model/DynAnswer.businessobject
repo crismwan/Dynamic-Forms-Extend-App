@@ -1,0 +1,103 @@
+{
+  "id": 6,
+  "name": "DynAnswer",
+  "label": "Dyn Answer",
+  "defaultSecurityDomains": [
+    "UseDynamicForms"
+  ],
+  "defaultCollection": {
+    "name": "dynAnswers",
+    "label": "All Dyn Answers"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "responseKey",
+      "label": "Response Key",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 2,
+      "name": "formCode",
+      "label": "Form Code",
+      "type": "TEXT"
+    },
+    {
+      "id": 3,
+      "name": "qKey",
+      "label": "Question Key",
+      "type": "TEXT",
+      "useForDisplay": true
+    },
+    {
+      "id": 4,
+      "name": "rowNumber",
+      "label": "Row Number",
+      "type": "INTEGER"
+    },
+    {
+      "id": 5,
+      "name": "textValue",
+      "label": "Text Value",
+      "type": "TEXT"
+    },
+    {
+      "id": 6,
+      "name": "numberValue",
+      "label": "Number Value",
+      "type": "DECIMAL",
+      "decimals": 2
+    },
+    {
+      "id": 7,
+      "name": "dateValue",
+      "label": "Date Value",
+      "type": "DATE",
+      "precision": "DAY"
+    },
+    {
+      "id": 8,
+      "name": "refId",
+      "label": "Picked Record ID",
+      "type": "TEXT"
+    },
+    {
+      "id": 9,
+      "name": "refDescriptor",
+      "label": "Picked Record Name",
+      "type": "TEXT"
+    },
+    {
+      "id": 10,
+      "name": "organization",
+      "label": "Organization",
+      "type": "SINGLE_INSTANCE",
+      "target": "SUPERVISORY_ORGANIZATION"
+    },
+    {
+      "id": 11,
+      "name": "position",
+      "label": "Position",
+      "type": "SINGLE_INSTANCE",
+      "target": "POSITION"
+    },
+    {
+      "id": 12,
+      "name": "worker",
+      "label": "Worker",
+      "type": "SINGLE_INSTANCE",
+      "target": "WORKER",
+      "enableReportingFromTarget": true
+    },
+    {
+      "id": 13,
+      "name": "secretText",
+      "label": "Confidential Value",
+      "type": "TEXT",
+      "securityDomains": [
+        "DynConfidential"
+      ]
+    }
+  ]
+}

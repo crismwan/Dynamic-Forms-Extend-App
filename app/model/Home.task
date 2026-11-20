@@ -1,0 +1,9 @@
+{
+  "id": 2,
+  "name": "Home",
+  "label": "Dynamic Forms",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "routePath": "/"
+}

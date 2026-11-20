@@ -1,0 +1,811 @@
+{
+  "id": "FormQuestions",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "include": [
+    "fs.script",
+    "browse.script"
+  ],
+  "script": "<%\n  var loadFinder = function() {\n    finderReadOnlyText.setValue(fs.copyText(finderSourceInstanceList.selectedEntries, []));\n    if (empty(finderSourceInstanceList.getValue())) {\n      finderStoreText.setValue('');\n      finderLoadedReadOnlyText.setValue('Pick a data source to browse its fields.');\n    } else {\n      var ds = string:pathEncode(finderSourceInstanceList.getValue()[0]);\n      var first = fieldsPage.invoke({'ds': ds, 'off': '0'});\n      var all = first.data ?? [];\n      var total = first.total ?? all.size();\n      for (var o : [100, 200, 300, 400]) {\n        if (o < total) { all = list:flatten([all, (fieldsPage.invoke({'ds': ds, 'off': '' + o}).data ?? [])]); }\n      }\n      finderStoreText.setValue(browse.fieldPack(all));\n      finderLoadedReadOnlyText.setValue('' + all.size() + ' of ' + total + ' fields in the folders' + (all.size() < total ? '; typing searches all of them.' : '.'));\n    }\n  };\n%>",
+  "endPoints": [
+    {
+      "name": "formRec",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'dynForms?limit=1&code=' + (queryParams.form ?? '').urlEncode() %>",
+      "exclude": "<% empty(queryParams.form) %>"
+    },
+    {
+      "name": "qs",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'dynQuestions?limit=100&formCode=' + (queryParams.form ?? '').urlEncode() %>",
+      "exclude": "<% empty(queryParams.form) %>"
+    },
+    {
+      "name": "dsFind",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "deferred": true,
+      "url": "<% 'dataSources?limit=100&searchString=' + string:pathEncode(q) %>"
+    },
+    {
+      "name": "fieldFind",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "deferred": true,
+      "url": "<% 'dataSources/' + string:pathEncode(ds) + '/fields?limit=100&searchString=' + string:pathEncode(q) %>"
+    },
+    {
+      "name": "fieldsPage",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "deferred": true,
+      "url": "<% 'dataSources/' + ds + '/fields?limit=100&offset=' + off %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postQ",
+        "baseUrlType": "app",
+        "url": "dynQuestions",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% !empty(qIdText.value) %>"
+      },
+      {
+        "name": "patchQ",
+        "baseUrlType": "app",
+        "url": "<% 'dynQuestions/' + qIdText.value %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(qIdText.value) %>"
+      },
+      {
+        "name": "deleteQ",
+        "baseUrlType": "app",
+        "url": "<% 'dynQuestions/' + qIdText.value %>",
+        "httpMethod": "DELETE",
+        "authType": "sso"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormQuestions_pageTitle_label %>"
+    },
+    "cancelOverride": {
+      "taskId": "FormStudio"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "cardContainer",
+          "id": "toolsCardContainer",
+          "layout": "grid",
+          "cards": [
+            {
+              "type": "card",
+              "cardId": "Hero",
+              "parameters": "<% {'heroTitle': (presentationLabels.FormQuestions_card_heroTitle_1), 'heroLine': (presentationLabels.FormQuestions_card_heroLine_2), 'heroIcon': 'wd-accent-media-file', 'chipLabel': (presentationLabels.FormQuestions_card_chipLabel_3), 'chipColor': 'orange'} %>"
+            },
+            {
+              "type": "card",
+              "cardId": "StudioNav",
+              "parameters": "<% {'activeStudio': 'FormStudio', 'studioTitle': 'Form Studio', 'pillFormStudio': (presentationLabels.FormQuestions_card_pillFormStudio_4), 'pillFormDesigner': (presentationLabels.FormQuestions_card_pillFormDesigner_5), 'pillDynFormLookup': (presentationLabels.FormQuestions_card_pillDynFormLookup_6), 'pillDynFormResults': (presentationLabels.FormQuestions_card_pillDynFormResults_7), 'pillHome': (presentationLabels.FormQuestions_card_pillHome_8)} %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormQuestions_aboutFieldSet_title %>",
+          "collapsible": true,
+          "initializeCollapsed": true,
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormQuestions_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "formFieldSet",
+          "title": "<% presentationLabels.FormQuestions_formFieldSet_title %>",
+          "children": [
+            {
+              "type": "readOnlyText",
+              "id": "formReadOnlyText",
+              "label": "<% presentationLabels.FormQuestions_formReadOnlyText_label %>",
+              "value": "<% empty(queryParams.form) ? 'Open this page from Forms: no form in the address.' : (queryParams.form + '  ' + (fs.first(formRec.data ?? []).formName ?? '(not found)')) %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "targetReadOnlyText",
+              "label": "<% presentationLabels.FormQuestions_targetReadOnlyText_label %>",
+              "value": "<% fs.targetName(fs.first(formRec.data ?? []).targetObject) %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "targetFieldsReadOnlyText",
+              "label": "<% presentationLabels.FormQuestions_targetFieldsReadOnlyText_label %>",
+              "value": "<% fs.targetFields(fs.first(formRec.data ?? []).targetObject) %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "sourcesReadOnlyText",
+              "label": "<% presentationLabels.FormQuestions_sourcesReadOnlyText_label %>",
+              "value": "<% fs.dsCount(fs.first(formRec.data ?? []).dataSources) %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "finderFieldSet",
+          "title": "<% presentationLabels.FormQuestions_finderFieldSet_title %>",
+          "collapsible": true,
+          "initializeCollapsed": true,
+          "children": [
+            {
+              "type": "checkBox",
+              "id": "finderAppOnlyCheckBox",
+              "label": "<% presentationLabels.FormQuestions_finderAppOnlyCheckBox_label %>",
+              "value": "<% false %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "finderSourceInstanceList",
+              "label": "<% presentationLabels.FormQuestions_finderSourceInstanceList_label %>",
+              "values": "<% browse.dsRoot() %>",
+              "dynamicMonikerLevels": "<% if (browse.dsNoCall(self.promptSelections)) { return browse.dsLevel(self.promptSelections, [], true); } return browse.dsLevel(self.promptSelections, dsFind.invoke({'q': browse.dsLevelQuery(self.promptSelections)}).data, true); %>",
+              "onSearch": "<% empty(event.query) ? [] : fs.dsPick(dsFind.invoke({'q': fs.dsQuery(event.query, finderAppOnlyCheckBox.getValue())}).data, true) %>",
+              "onChange": "<% loadFinder() %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "finderLoadedReadOnlyText",
+              "label": "<% presentationLabels.FormQuestions_finderLoadedReadOnlyText_label %>",
+              "value": "<% 'Pick a data source to browse its fields.' %>"
+            },
+            {
+              "type": "text",
+              "id": "finderStoreText",
+              "label": "<% presentationLabels.FormQuestions_finderStoreText_label %>",
+              "visible": false,
+              "value": "<% '' %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "finderTypeInstanceList",
+              "label": "<% presentationLabels.FormQuestions_finderTypeInstanceList_label %>",
+              "multiSelect": true,
+              "instanceList": [
+                {
+                  "id": "textType",
+                  "descriptor": "Text"
+                },
+                {
+                  "id": "numericType",
+                  "descriptor": "Number"
+                },
+                {
+                  "id": "dateType",
+                  "descriptor": "Date"
+                },
+                {
+                  "id": "booleanType",
+                  "descriptor": "Yes / No"
+                },
+                {
+                  "id": "currencyType",
+                  "descriptor": "Currency"
+                },
+                {
+                  "id": "singleType",
+                  "descriptor": "Single instance"
+                },
+                {
+                  "id": "multiType",
+                  "descriptor": "Multi-instance"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "finderRelatedText",
+              "label": "<% presentationLabels.FormQuestions_finderRelatedText_label %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "finderFieldInstanceList",
+              "label": "<% presentationLabels.FormQuestions_finderFieldInstanceList_label %>",
+              "values": "<% browse.folderRoot(browse.fieldDefs(), []) %>",
+              "dynamicMonikerLevels": "<% browse.folderLevel(browse.fieldDefs(), browse.fieldFilter(browse.fieldRows(finderStoreText.getValue()), finderTypeInstanceList.getValue(), finderRelatedText.getValue()), self.promptSelections) %>",
+              "onSearch": "<% (empty(event.query) || empty(finderSourceInstanceList.getValue())) ? [] : fs.fieldPick(fieldFind.invoke({'ds': finderSourceInstanceList.getValue()[0], 'q': fs.dsQuery(event.query, false)}).data, finderTypeInstanceList.getValue(), finderRelatedText.getValue()) %>",
+              "onChange": "<% finderReadOnlyText.setValue(fs.copyText(finderSourceInstanceList.selectedEntries, self.value)) %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "finderReadOnlyText",
+              "label": "<% presentationLabels.FormQuestions_finderReadOnlyText_label %>",
+              "value": "<% 'Pick a data source, then a field.' %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "regexFieldSet",
+          "title": "<% presentationLabels.FormQuestions_regexFieldSet_title %>",
+          "collapsible": true,
+          "initializeCollapsed": true,
+          "children": [
+            {
+              "type": "text",
+              "id": "regexTryText",
+              "label": "<% presentationLabels.FormQuestions_regexTryText_label %>",
+              "onChange": "<% regexResultReadOnlyText.setValue(fs.rxTest(self.getValue(), sampleText.getValue())) %>"
+            },
+            {
+              "type": "text",
+              "id": "sampleText",
+              "label": "<% presentationLabels.FormQuestions_sampleText_label %>",
+              "onChange": "<% regexResultReadOnlyText.setValue(fs.rxTest(regexTryText.getValue(), self.getValue())) %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "regexResultReadOnlyText",
+              "label": "<% presentationLabels.FormQuestions_regexResultReadOnlyText_label %>",
+              "value": "<% 'Type a regular expression and a sample answer.' %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "questionsGrid",
+          "label": "<% presentationLabels.FormQuestions_questionsGrid_label %>",
+          "rowVariableName": "qr",
+          "deleteEndPoint": "deleteQ",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "idColumn",
+              "label": "<% presentationLabels.FormQuestions_idColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "qIdText",
+                "enabled": false,
+                "value": "<% qr.id ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "orderColumn",
+              "label": "<% presentationLabels.FormQuestions_orderColumn_label %>",
+              "cellTemplate": {
+                "type": "number",
+                "id": "orderNumber",
+                "value": "<% qr.sortOrder ?? 1 %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.sortOrder"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.sortOrder"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "keyColumn",
+              "label": "<% presentationLabels.FormQuestions_keyColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "keyText",
+                "value": "<% qr.qKey ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.qKey"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.qKey"
+                  },
+                  {
+                    "value": "<% queryParams.form ?? '' %>",
+                    "valueOutBinding": "postQ.formCode"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "typeColumn",
+              "label": "<% presentationLabels.FormQuestions_typeColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "typeInstanceList",
+                "instanceList": [
+                  {
+                    "id": "text",
+                    "descriptor": "Text"
+                  },
+                  {
+                    "id": "number",
+                    "descriptor": "Number"
+                  },
+                  {
+                    "id": "date",
+                    "descriptor": "Date"
+                  },
+                  {
+                    "id": "choice",
+                    "descriptor": "Choice (from Options)"
+                  },
+                  {
+                    "id": "yesno",
+                    "descriptor": "Yes / No"
+                  },
+                  {
+                    "id": "lookup",
+                    "descriptor": "Lookup (from a source)"
+                  },
+                  {
+                    "id": "subform",
+                    "descriptor": "Sub-form here (Options = its form code; Show when = trigger)"
+                  },
+                  {
+                    "id": "nextform",
+                    "descriptor": "Next form after OK (Options = its form code; Show when = trigger)"
+                  }
+                ],
+                "selectedValues": "<% [qr.qType ?? 'text'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'text' : self.value[0] %>",
+                    "valueOutBinding": "postQ.qType"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'text' : self.value[0] %>",
+                    "valueOutBinding": "patchQ.qType"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "labelColumn",
+              "label": "<% presentationLabels.FormQuestions_labelColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "labelText",
+                "value": "<% qr.qLabel ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.qLabel"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.qLabel"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "requiredColumn",
+              "label": "<% presentationLabels.FormQuestions_requiredColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "requiredCheckBox",
+                "value": "<% qr.required ?? false %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "postQ.required"
+                  },
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "patchQ.required"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "optionsColumn",
+              "label": "<% presentationLabels.FormQuestions_optionsColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "optionsText",
+                "value": "<% qr.qOptions ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.qOptions"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.qOptions"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "regexColumn",
+              "label": "<% presentationLabels.FormQuestions_regexColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "regexText",
+                "value": "<% qr.regex ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.regex"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.regex"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "regexMessageColumn",
+              "label": "<% presentationLabels.FormQuestions_regexMessageColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "regexMessageText",
+                "value": "<% qr.regexMessage ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.regexMessage"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.regexMessage"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "lookupColumn",
+              "label": "<% presentationLabels.FormQuestions_lookupColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "lookupInstanceList",
+                "instanceList": [
+                  {
+                    "id": "noLookup",
+                    "descriptor": "None"
+                  },
+                  {
+                    "id": "orgs",
+                    "descriptor": "Supervisory organizations"
+                  },
+                  {
+                    "id": "positions",
+                    "descriptor": "Positions"
+                  },
+                  {
+                    "id": "workers",
+                    "descriptor": "Workers (search as you type)"
+                  },
+                  {
+                    "id": "domains",
+                    "descriptor": "Security domains (4,000+)"
+                  }
+                ],
+                "selectedValues": "<% [qr.lookup ?? 'noLookup'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'noLookup' : self.value[0] %>",
+                    "valueOutBinding": "postQ.lookup"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'noLookup' : self.value[0] %>",
+                    "valueOutBinding": "patchQ.lookup"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "prefillColumn",
+              "label": "<% presentationLabels.FormQuestions_prefillColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "prefillInstanceList",
+                "instanceList": [
+                  {
+                    "id": "noPrefill",
+                    "descriptor": "None"
+                  },
+                  {
+                    "id": "name",
+                    "descriptor": "Name"
+                  },
+                  {
+                    "id": "title",
+                    "descriptor": "Business title"
+                  },
+                  {
+                    "id": "location",
+                    "descriptor": "Location"
+                  },
+                  {
+                    "id": "email",
+                    "descriptor": "Work email"
+                  },
+                  {
+                    "id": "org",
+                    "descriptor": "Own organization (lookups)"
+                  }
+                ],
+                "selectedValues": "<% [qr.prefill ?? 'noPrefill'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'noPrefill' : self.value[0] %>",
+                    "valueOutBinding": "postQ.prefill"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'noPrefill' : self.value[0] %>",
+                    "valueOutBinding": "patchQ.prefill"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "showKeyColumn",
+              "label": "<% presentationLabels.FormQuestions_showKeyColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "showKeyText",
+                "value": "<% qr.showKey ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.showKey"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.showKey"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "showOpColumn",
+              "label": "<% presentationLabels.FormQuestions_showOpColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "showOpInstanceList",
+                "instanceList": [
+                  {
+                    "id": "eq",
+                    "descriptor": "equals"
+                  },
+                  {
+                    "id": "ne",
+                    "descriptor": "does not equal"
+                  },
+                  {
+                    "id": "filled",
+                    "descriptor": "is filled in"
+                  }
+                ],
+                "selectedValues": "<% [qr.showOp ?? 'eq'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'eq' : self.value[0] %>",
+                    "valueOutBinding": "postQ.showOp"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'eq' : self.value[0] %>",
+                    "valueOutBinding": "patchQ.showOp"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "showValueColumn",
+              "label": "<% presentationLabels.FormQuestions_showValueColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "showValueText",
+                "value": "<% qr.showValue ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.showValue"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.showValue"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "calcColumn",
+              "label": "<% presentationLabels.FormQuestions_calcColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "calcText",
+                "value": "<% qr.calc ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.calc"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.calc"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "dataSourceColumn",
+              "label": "<% presentationLabels.FormQuestions_dataSourceColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "dataSourceText",
+                "value": "<% qr.dataSource ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.dataSource"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.dataSource"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "sourceFieldColumn",
+              "label": "<% presentationLabels.FormQuestions_sourceFieldColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "sourceFieldText",
+                "value": "<% qr.sourceField ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.sourceField"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.sourceField"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "targetFieldColumn",
+              "label": "<% presentationLabels.FormQuestions_targetFieldColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "targetFieldText",
+                "value": "<% qr.targetField ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.targetField"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.targetField"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "paramsColumn",
+              "label": "<% presentationLabels.FormQuestions_paramsColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "paramsText",
+                "value": "<% qr.params ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.params"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.params"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "helpColumn",
+              "label": "<% presentationLabels.FormQuestions_helpColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "helpText",
+                "value": "<% qr.help ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.help"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.help"
+                  }
+                ]
+              }
+            }
+          ],
+          "rows": "<% list:sort(qs.data ?? [], 'sortOrder', true) %>"
+        }
+      ]
+    }
+  }
+}

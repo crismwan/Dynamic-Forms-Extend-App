@@ -1,0 +1,56 @@
+{
+  "id": "developertoolkitappv1_kwswrv",
+  "siteId": "developertoolkitappv1_kwswrv",
+  "applicationId": "developertoolkitappv1_kwswrv",
+  "languages": [
+    {
+      "code": "en-US",
+      "description": "English"
+    },
+    {
+      "code": "fr-CA",
+      "description": "French (Canada)"
+    }
+  ],
+  "siteAuth": {
+    "authTypes": [
+      {
+        "scheme": "SSO",
+        "id": "sso"
+      },
+      {
+        "id": "isuAuth",
+        "scheme": "ISU",
+        "username": "TEST_LAB_SUB_ISU"
+      }
+    ]
+  },
+  "cdnEnabled": true,
+  "siteProperties": [],
+  "errorPageConfigurations": [
+    {
+      "statusCode": "401",
+      "page": {
+        "id": "ErrorPage"
+      }
+    },
+    {
+      "statusCode": "403",
+      "page": {
+        "id": "ErrorPage"
+      }
+    },
+    {
+      "statusCode": "404",
+      "page": {
+        "id": "ErrorPage"
+      }
+    },
+    {
+      "statusCode": "500",
+      "page": {
+        "id": "ErrorPage"
+      }
+    }
+  ]
+}

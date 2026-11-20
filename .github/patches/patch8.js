@@ -1,0 +1,8 @@
+const fs = require('fs');
+const f = process.env.CMDS;
+let c = fs.readFileSync(f, 'utf8');
+const OLD = 'async function q(e,n,t,s){if(s.referenceId&&t["app-id"])throw new Error(`The command requires that only one of reference ID (first argument) or ${b.appUuidFlagName} as a flag is supplied. This is true even if the two parameters are referencing the same app.`);s.referenceId&&Ie(e,s.referenceId);const o=s.referenceId?{appRefId:s.referenceId}:t["app-id"]?{appId:t["app-id"]}:void 0;if(o)try{const i=await n.getApplication(o);return Ie(e,i.referenceId),i}catch{throw new Error(`Unable to find app with ${o.appRefId?"reference ID":"ID"} ${o.appRefId||o.appId}`)}';
+const REP = 'async function q(e,n,t,s){if(s.referenceId&&t["app-id"])throw new Error(`The command requires that only one of reference ID (first argument) or ${b.appUuidFlagName} as a flag is supplied. This is true even if the two parameters are referencing the same app.`);s.referenceId&&Ie(e,s.referenceId);const o=s.referenceId?{appRefId:s.referenceId}:t["app-id"]?{appId:t["app-id"]}:void 0;if(o&&process.env.WDCLI_APP_UUID){console.error("[CI] Bypassing getApplication, returning hardcoded app:",process.env.WDCLI_APP_UUID);const appRefId=s.referenceId||o.appRefId||process.env.APP_REF;return{id:process.env.WDCLI_APP_UUID,referenceId:appRefId,name:process.env.APP_NAME,appType:"EXTEND",organizationUuid:process.env.WDCLI_ORG_UUID};}if(o)try{const i=await n.getApplication(o);return Ie(e,i.referenceId),i}catch{throw new Error(`Unable to find app with ${o.appRefId?"reference ID":"ID"} ${o.appRefId||o.appId}`)}';
+if (!c.includes(OLD)) { console.error('ERROR: q() patch target not found'); process.exit(1); }
+fs.writeFileSync(f, c.replace(OLD, REP));
+console.log('Patch 8 (bypass getApplication/q): OK');

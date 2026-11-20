@@ -1,0 +1,10 @@
+{
+  "id": 10,
+  "name": "FillNextForm",
+  "label": "Fill Next Form",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "businessObject": "DynResponse",
+  "routePath": "/dynFormNext/{taskObjectId}"
+}

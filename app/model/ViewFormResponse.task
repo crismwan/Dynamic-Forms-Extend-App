@@ -1,0 +1,10 @@
+{
+  "id": 9,
+  "name": "ViewFormResponse",
+  "label": "View Form Response",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "businessObject": "DynResponse",
+  "routePath": "/dynFormResults/{taskObjectId}"
+}

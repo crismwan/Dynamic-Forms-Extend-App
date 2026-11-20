@@ -1,0 +1,7 @@
+{
+  "id": 2,
+  "name": "DynConfidential",
+  "label": "Dyn Confidential Answers",
+  "enabledForPageSecurity": false,
+  "enabledForOrchestrationSecurity": false
+}

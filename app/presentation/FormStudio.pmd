@@ -1,0 +1,286 @@
+{
+  "id": "FormStudio",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "include": [
+    "fs.script"
+  ],
+  "endPoints": [
+    {
+      "name": "forms",
+      "baseUrlType": "app",
+      "url": "dynForms?limit=100",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "qCounts",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "url": "<% 'data?limit=1000&query=' + string:pathEncode('SELECT formCode, COUNT(workdayID) FROM developertoolkitappv1_kwswrv_dynQuestions GROUP BY formCode') %>"
+    },
+    {
+      "name": "rCounts",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "url": "<% 'data?limit=1000&query=' + string:pathEncode('SELECT formCode, COUNT(workdayID) FROM developertoolkitappv1_kwswrv_dynResponses GROUP BY formCode') %>"
+    }
+  ],
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormStudio_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "cardContainer",
+          "id": "toolsCardContainer",
+          "layout": "grid",
+          "cards": [
+            {
+              "type": "card",
+              "cardId": "Hero",
+              "parameters": "<% {'heroTitle': (presentationLabels.FormStudio_card_heroTitle_1), 'heroLine': (presentationLabels.FormStudio_card_heroLine_2), 'heroIcon': 'wd-accent-media-file', 'chipLabel': (presentationLabels.FormStudio_card_chipLabel_3), 'chipColor': 'blue'} %>"
+            },
+            {
+              "type": "card",
+              "cardId": "StudioNav",
+              "parameters": "<% {'activeStudio': 'FormStudio', 'studioTitle': 'Form Studio', 'pillFormStudio': (presentationLabels.FormStudio_card_pillFormStudio_4), 'pillFormDesigner': (presentationLabels.FormStudio_card_pillFormDesigner_5), 'pillDynFormLookup': (presentationLabels.FormStudio_card_pillDynFormLookup_6), 'pillDynFormResults': (presentationLabels.FormStudio_card_pillDynFormResults_7), 'pillHome': (presentationLabels.FormStudio_card_pillHome_8)} %>"
+            },
+            {
+              "type": "card",
+              "cardId": "Steps",
+              "parameters": "<% {'stepsTitle': (presentationLabels.FormStudio_card_stepsTitle_9), 'stepsText': (presentationLabels.FormStudio_card_stepsText_10)} %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormStudio_aboutFieldSet_title %>",
+          "collapsible": true,
+          "initializeCollapsed": true,
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormStudio_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "formsGrid",
+          "label": "<% presentationLabels.FormStudio_formsGrid_label %>",
+          "rowVariableName": "fr",
+          "render": "<% (forms.data ?? []).size() > 0 %>",
+          "rows": "<% list:sort(forms.data ?? [], 'code', true) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "codeColumn",
+              "label": "<% presentationLabels.FormStudio_codeColumn_label %>",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "codeLinkFieldSet",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "codeLinkInstanceList",
+                    "visible": "<% !empty(fr.id) %>",
+                    "values": "<% empty(fr.id) ? [] : [{'id': fr.id, 'descriptor': fr.code ?? ''}] %>",
+                    "widKey": "id",
+                    "view": true,
+                    "relatedTask": true
+                  },
+                  {
+                    "type": "text",
+                    "id": "codeLinkText",
+                    "enabled": false,
+                    "visible": "<% empty(fr.id) %>",
+                    "value": "<% fr.code ?? '' %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "nameColumn",
+              "label": "<% presentationLabels.FormStudio_nameColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "nameText",
+                "enabled": false,
+                "value": "<% fr.formName ?? '' %>"
+              },
+              "sortableAndFilterable": "true"
+            },
+            {
+              "type": "column",
+              "columnId": "statusColumn",
+              "label": "<% presentationLabels.FormStudio_statusColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "statusText",
+                "enabled": false,
+                "value": "<% (fr.status ?? '').lowerCase() == 'approved' ? '✓ Approved' : ((fr.status ?? '').lowerCase() == 'retired' ? '✕ Retired' : '○ Draft') %>"
+              },
+              "sortableAndFilterable": "true"
+            },
+            {
+              "type": "column",
+              "columnId": "targetColumn",
+              "label": "<% presentationLabels.FormStudio_targetColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "targetText",
+                "enabled": false,
+                "value": "<% fs.targetName(fr.targetObject) %>"
+              },
+              "sortableAndFilterable": "true"
+            },
+            {
+              "type": "column",
+              "columnId": "sourcesColumn",
+              "label": "<% presentationLabels.FormStudio_sourcesColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "sourcesText",
+                "enabled": false,
+                "value": "<% fs.dsCount(fr.dataSources) %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "requestColumn",
+              "label": "<% presentationLabels.FormStudio_requestColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "requestText",
+                "enabled": false,
+                "value": "<% fs.requestText(fr) %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "questionsColumn",
+              "label": "<% presentationLabels.FormStudio_questionsColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "questionsCountText",
+                "enabled": false,
+                "value": "<% fs.countFor(qCounts.data, fr.code ?? '') %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "responsesColumn",
+              "label": "<% presentationLabels.FormStudio_responsesColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "responsesCountText",
+                "enabled": false,
+                "value": "<% fs.countFor(rCounts.data, fr.code ?? '') %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "designColumn",
+              "label": "<% presentationLabels.FormStudio_designColumn_label %>",
+              "cellTemplate": {
+                "type": "button",
+                "id": "designButton",
+                "label": "<% presentationLabels.FormStudio_designButton_label %>",
+                "action": "PRIMARY",
+                "taskReference": {
+                  "taskId": "FormDesigner",
+                  "parameterBindings": {
+                    "form": "<% fr.code %>"
+                  }
+                }
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "editQuestionsColumn",
+              "label": "<% presentationLabels.FormStudio_editQuestionsColumn_label %>",
+              "cellTemplate": {
+                "type": "button",
+                "id": "questionsButton",
+                "label": "<% presentationLabels.FormStudio_questionsButton_label %>",
+                "action": "AUXILIARY",
+                "taskReference": {
+                  "taskId": "FormQuestions",
+                  "parameterBindings": {
+                    "form": "<% fr.code %>"
+                  }
+                }
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "fillColumn",
+              "label": "<% presentationLabels.FormStudio_fillColumn_label %>",
+              "cellTemplate": {
+                "type": "button",
+                "id": "fillButton",
+                "label": "<% presentationLabels.FormStudio_fillButton_label %>",
+                "action": "AUXILIARY",
+                "taskReference": {
+                  "taskId": "DynFormLookup",
+                  "parameterBindings": {
+                    "form": "<% fr.code %>"
+                  }
+                }
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "answersColumn",
+              "label": "<% presentationLabels.FormStudio_answersColumn_label %>",
+              "cellTemplate": {
+                "type": "button",
+                "id": "answersButton",
+                "label": "<% presentationLabels.FormStudio_answersButton_label %>",
+                "action": "AUXILIARY",
+                "taskReference": {
+                  "taskId": "DynFormResults",
+                  "parameterBindings": {
+                    "form": "<% fr.code %>"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "emptyFieldSet",
+          "title": "<% presentationLabels.FormStudio_emptyFieldSet_title %>",
+          "render": "<% (forms.data ?? []).size() == 0 %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "emptyText",
+              "enabled": false,
+              "value": "<% 'Use New form above to make the first one.' %>"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

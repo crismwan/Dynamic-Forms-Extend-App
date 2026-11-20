@@ -1,0 +1,107 @@
+{
+  "id": 3,
+  "name": "DynForm",
+  "label": "Dyn Form",
+  "defaultSecurityDomains": [
+    "UseDynamicForms"
+  ],
+  "defaultCollection": {
+    "name": "dynForms",
+    "label": "All Dyn Forms"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "code",
+      "label": "Code",
+      "type": "TEXT",
+      "useForDisplay": true,
+      "enableIndex": true
+    },
+    {
+      "id": 2,
+      "name": "formName",
+      "label": "Form Name",
+      "type": "TEXT"
+    },
+    {
+      "id": 3,
+      "name": "version",
+      "label": "Version",
+      "type": "INTEGER"
+    },
+    {
+      "id": 4,
+      "name": "status",
+      "label": "Status",
+      "type": "TEXT"
+    },
+    {
+      "id": 5,
+      "name": "description",
+      "label": "Description",
+      "type": "TEXT"
+    },
+    {
+      "id": 6,
+      "name": "targetObject",
+      "label": "Target Object",
+      "type": "TEXT"
+    },
+    {
+      "id": 7,
+      "name": "dataSources",
+      "label": "Data Sources",
+      "type": "TEXT"
+    },
+    {
+      "id": 8,
+      "name": "requestFramework",
+      "label": "Request Framework",
+      "type": "BOOLEAN"
+    },
+    {
+      "id": 9,
+      "name": "requestType",
+      "label": "Request Type",
+      "type": "TEXT"
+    },
+    {
+      "id": 10,
+      "name": "businessProcess",
+      "label": "Business Process",
+      "type": "TEXT"
+    },
+    {
+      "id": 11,
+      "name": "copiedFrom",
+      "label": "Copied From",
+      "type": "TEXT"
+    },
+    {
+      "id": 12,
+      "name": "family",
+      "label": "Form Family",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 13,
+      "name": "noFormPolicy",
+      "label": "Gate Policy When Not Filled",
+      "type": "TEXT"
+    },
+    {
+      "id": 14,
+      "name": "failPolicy",
+      "label": "Gate Policy When Check Fails",
+      "type": "TEXT"
+    },
+    {
+      "id": 15,
+      "name": "alsoAssign",
+      "label": "Also Assign Forms",
+      "type": "TEXT"
+    }
+  ]
+}

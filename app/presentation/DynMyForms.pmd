@@ -1,0 +1,145 @@
+{
+  "id": "DynMyForms",
+  "securityDomains": [
+    "DynFill"
+  ],
+  "endPoints": [
+    {
+      "name": "pme",
+      "baseUrlType": "workday-api",
+      "url": "person/v4/people/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mew",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "url": "<% 'data?limit=5&query=' + string:pathEncode('SELECT worker, businessTitle, location, supervisoryOrganization FROM allWorkers WHERE person in (' + (empty(pme.id) ? 'x' : pme.id) + ')') %>"
+    },
+    {
+      "name": "asgCount",
+      "baseUrlType": "app",
+      "authType": "isuAuth",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "dynResponses?limit=1"
+    },
+    {
+      "name": "asgPage0",
+      "baseUrlType": "app",
+      "authType": "isuAuth",
+      "url": "<% let t = asgCount.total ?? 0; let st = t - 100; '/dynResponses?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (asgCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "asgPage1",
+      "baseUrlType": "app",
+      "authType": "isuAuth",
+      "url": "<% let t = asgCount.total ?? 0; let st = t - 200; '/dynResponses?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (asgCount.total ?? 0) - 100 <= 0 %>"
+    }
+  ],
+  "script": "<%\n  var rows = function() {\n    var all = list:flatten([asgPage0.data ?? [], asgPage1.data ?? []]);\n    var done = '|' + all.map(c => { '' + (c.parentKey ?? '') }).join('|') + '|';\n    var mine = (mew.data ?? []).map(w => { empty(w.worker) ? '' : w.worker.id });\n    all.filter(r => { (r.formCode ?? '') == 'BP' && !done.contains('|' + (r.responseKey ?? '') + '|') && ((!empty(r.bpPerson) && r.bpPerson == pme.id) || (!empty(r.bpTarget) && mine.contains(r.bpTarget))) && ('' + (r.status ?? '')).startsWith('Assigned') });\n  };\n%>",
+  "presentation": {
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.DynMyForms_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.DynMyForms_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.DynMyForms_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "myFormsGrid",
+          "label": "<% presentationLabels.DynMyForms_myFormsGrid_label %>",
+          "rows": "<% rows() %>",
+          "rowVariableName": "mr",
+          "render": "<% rows().size() > 0 %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "forColumn",
+              "label": "<% presentationLabels.DynMyForms_forColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "forText",
+                "value": "<% ('' + (mr.status ?? '')).substringAfter('Assigned: ') %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "formColumn",
+              "label": "<% presentationLabels.DynMyForms_formColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "formText",
+                "value": "<% mr.nextForm ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "fillColumn",
+              "label": "<% presentationLabels.DynMyForms_fillColumn_label %>",
+              "cellTemplate": {
+                "type": "button",
+                "id": "fillButton",
+                "label": "<% presentationLabels.DynMyForms_fillButton_label %>",
+                "action": "PRIMARY",
+                "taskReference": {
+                  "taskId": "DynMyFill",
+                  "parameterBindings": {
+                    "form": "<% mr.nextForm ?? '' %>",
+                    "parent": "<% mr.responseKey ?? '' %>"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "noneFieldSet",
+          "title": "<% presentationLabels.DynMyForms_noneFieldSet_title %>",
+          "render": "<% rows().size() == 0 %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "noneText",
+              "label": "<% presentationLabels.DynMyForms_noneText_label %>",
+              "enabled": false,
+              "value": "<% 'No forms are waiting for you.' %>"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
