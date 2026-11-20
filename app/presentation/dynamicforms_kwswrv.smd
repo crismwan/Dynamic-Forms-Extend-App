@@ -21,7 +21,7 @@
       {
         "id": "isuAuth",
         "scheme": "ISU",
-        "username": "TEST_LAB_SUB_ISU"
+        "username": "TEST_DYN_FORMS_ISU"
       }
     ]
   },
