@@ -224,3 +224,11 @@ The new app's domains had no security policy after the first deploy: View Domain
 | Dyn Confidential Answers | HR Administrator: View | TEST:LAB:SUB ISSG: Get and Put |
 
 Pending until Activate Pending Security Policy Changes.
+
+## The app's own ISU (2026-11-19 ~20:50)
+
+- App Manager's Add ISUs prompt doesn't offer an ISU already assigned to another app (TEST_LAB_SUB_ISU was on the Extend Toolkit).
+- After removing it from the toolkit and adding it here, **Create API Client failed with 409** "The name of this ISU is already associated with an API Client" (the toolkit's old client still holds the ISU name). So each app needs its own ISU.
+- Created **TEST_DYN_FORMS_ISU** (Do Not Allow UI Sessions; password set by the user), added it to **TEST:LAB:SUB ISSG** (same permissions as the toolkit's ISU), assigned it to Dynamic Forms in App Manager and created its API client. SMD `isuAuth` username switched to it (commit "Run page writes as the app's own ISU").
+- TEST_LAB_SUB_ISU is currently on neither app; re-add it to the toolkit (its old API client should still work) if the toolkit's My Forms pages are needed before they're removed.
+- The business-process Service steps still run as TEST_LAB_SUB_ISU (integration system / Run As), which doesn't depend on App Manager.
