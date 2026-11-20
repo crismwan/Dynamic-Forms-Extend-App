@@ -6,7 +6,7 @@ Moved out of the Extend Toolkit app on 2026-11-19: the tiered ownership plan ("D
 
 ## The new app (2026-11-19)
 
-- Repository: crismwan/Dynamic-Forms-Extend-App. App name "Dynamic Forms" (reference ID and app ID: see tools/set_app.py run in the first commit after `action=create`).
+- Repository: crismwan/Dynamic-Forms-Extend-App. App name "Dynamic Forms" Reference ID `dynamicforms_kwswrv`, app ID `76169d8ac8005cff15b8fa1252bad0ed`, created 2026-11-19 with `action=create` (App Hub name "dynamicforms"; rename it to "Dynamic Forms" in the developer console, Related Actions → Rename App). First deploy 2026-11-19 20:20, build 2c3125d05f7f97879701f4e3092f59b6.
 - Build: `python3 tools/build_app.py && python3 tools/build_browse.py && python3 tools/build_forms.py && python3 tools/build_studio.py && python3 tools/build_labels.py`, then `node tools/check.js`.
 - Security domains: **Use: Dynamic Forms** (pages, records, orchestrations; was Use: Developer Toolkit), **Dyn Forms Fill** (My Forms to Fill), **Dyn Confidential Answers** (DynAnswer.secretText).
 - Tenant setup to redo for the new app (the toolkit's setup pointed at the old app): ISU on the app (App Manager → Add ISUs, Create API Client), domain policies (then Activate Pending Security Policy Changes), the seed forms, every business process Service step (FormAssign / FormGate) and FormEnded launch configuration, the FixUp integration system (Application Reference ID), and the routing calculated fields that read DynResponse (TEST DYN Route HR Flag / Count / LRV).
