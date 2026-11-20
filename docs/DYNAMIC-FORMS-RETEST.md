@@ -76,8 +76,39 @@ signed in as an ordinary user with the app's domain (not an administrator), plus
 |---|----|--------|
 | 6.1 | WQL `SELECT worker, COUNT(workdayID) FROM <appRef>_dynAnswers GROUP BY worker` and All Workers `dynAnswer_worker_<appRef>`. | Both return rows; field aliases unchanged (a renamed alias breaks reports and calculated fields). |
 | 6.3 | Results: responses carry Form Family, Form Version, Organization; `SELECT family, COUNT(workdayID) FROM <appRef>_dynResponses WHERE formCode not in ("BP", "ALERT", "RECON") AND family is empty GROUP BY family`. | No rows once FormReconcile has run (older responses backfilled). |
-| 6.2 | The calculated fields TEST DYN Comment Route HR, TEST DYN Event Route HR Comments, TEST DYN Route HR Flag, TEST DYN Route HR Count and TEST DYN LRV Event Route HR Count, and the condition rule TEST DYN Route HR (comments > 0 **And** LRV count > 0). | Still saved and in use (Rule Usage lists Request Time Off, Change Job and the sub-process). |
+| 6.2 | The calculated fields TEST DYN Comment Route HR (contains `[ROUTE:HR]` And Comment by Person is empty) and TEST DYN Event Route HR Comments, and the condition rule TEST DYN Route HR (comments > 0). | Still saved and in use (Rule Usage lists Request Time Off, Change Job and the sub-process). |
 | 6.4 | Configure Orchestrations on each definition, and Edit Tenant Setup - Business Processes. | FormEnded rows present (Cancel, Rescind, Deny where offered) with the forms ISU as launch user; the tenant launch user is set. |
+
+## 7. Tiered ownership (plan phases 1 to 5, 2026-11-20)
+
+Setup first: departments marked, org map rebuilt, settings saved, at least one enterprise, one department and one team block published and assigned to the same process type, the process's Service step pointing at FormCompose.
+
+| # | Phase | Do | Expect |
+|---|---|---|---|
+| 7.1 | 1 | Fill a block with a Confidential question as an employee; then as a user with Use: Dynamic Forms but not Dyn Confidential Answers open Results, the event and its comments. | The answer is a Dyn Answer Confidential row; not on Results for that user; the gate comment shows only General answers. |
+| 7.2 | 1 | Same with a Restricted question; open as a manager outside the Restricted group. | Not visible anywhere; never offered for reuse. |
+| 7.3 | 1 | Type `[ROUTE:HR]` into a comment on a Request Time Off event by hand (the gate routed normal). Rule Tester, TEST DYN Route HR. | Comments 0, rule No: routing ignores it. A gate run with commute 100+ on another request: comments 1, Yes. |
+| 7.4 | 1 | Two open time-off requests for one worker, one HR (commute 120) and one normal (commute 5). | Each routes on its own event; two route records keyed by event. |
+| 7.5 | 2 | Request for a worker in a team under a department under the enterprise. | One composed form (Dyn Form kind composed) with three tier sections in order; at most 28 slots; one assignment. |
+| 7.6 | 2 | Publish a department block over its budget (11 questions, budget 10). | Publish refused with the slot count. |
+| 7.7 | 2 | Publish a new version of a block while a request is open; then fill the open request and start a new one. | The open request keeps its pinned versions; the new request gets a new composed form with the new version. |
+| 7.8 | 2 | The same library key in the enterprise and a department block. | Asked once (the enterprise copy). |
+| 7.9 | 2 | Run FormCompose twice on one event (send back and resubmit). | The same assignment reopened, no second assignment, the composed form reused. |
+| 7.10 | 3 | A question with prefill (title) whose value is right. | Shown first with "Check:" and the value filled; OK keeps it, source prefill. |
+| 7.11 | 3 | A reusable answer given on one process, then a second process asks the same key. | Filled in, label "from your earlier answer, kept until <date>"; changeable; source reused. |
+| 7.12 | 3 | Change the worker's location (or job title), then start a new request. | The commute answer is not offered again. |
+| 7.13 | 3 | My answers: clear one, then start a new request. | Asked again. |
+| 7.14 | 4 | Team block with Org + subordinates. | Applies two levels down; not to a sibling org. Reach preview shows the orgs and workers. |
+| 7.15 | 4 | Team block whose subordinates scope reaches another department. | Block assignments shows the error; publish refused. |
+| 7.16 | 4 | Move an org under the owner org in Workday, rebuild the org map. | The next request includes the block; owner dashboard shows reach changed. |
+| 7.17 | 5 | Launch Onboarding for a hire in a test team with the joiner kit enabled and a team access item. | Prepare task and welcome/learning tasks created once; KitPrepare lists baseline + team items, no duplicates. |
+| 7.18 | 5 | Untick a baseline item without a reason; then with one. | Error first; then a "removed" row with the reason, visible to the fulfiller. |
+| 7.19 | 5 | An elevated item: publish without the governance tick; request it without a reason. | Both refused. |
+| 7.20 | 5 | KitQueue ?group=IT: approve, decline with reason, mark done; try done on an unapproved elevated item. | Statuses saved; the elevated one refused. |
+| 7.21 | 5 | Cancel the Onboarding before the start. | FormEnded closes the form assignment (kit tasks stay as history; see PROGRESS). |
+| 7.22 | Recs | KitPeers with 5 peers (same org and job profile) of whom 4 have an item done; open KitPrepare for a new hire there. | "Recommended: 4 of 5 peers have it", ticked; with 2 peers nothing shown; names never shown. |
+| 7.23 | Pkg | Enable the joiner kit; copy one delivered item and change it; start an Onboarding. | Delivered items installed once; the copy replaces the delivered item in the new hire's tasks. |
+| 7.24 | 4 | FormPurge with a short retention in settings, then confirm. | AnswerPurge deletes up to 100 per class and answers its status per class. |
 
 ## After the run
 

@@ -61,9 +61,15 @@ Copy this for each process and fill in one row per process and per sub-process f
 
 Before signing a process off: run one request through each route (form filled and passing, check failing, form not filled), and one request that a different user approves, and open the event's Orchestrations tab to confirm every FormAssign / FormGate run says Successfully Completed. A failed run still advances the step, so a green process alone proves nothing.
 
-## Why routing needs two keys
+## Routing that can't be spoofed (2026-11-20)
 
-A marker comment alone can be forged: anyone who can comment on the event can type `[ROUTE:HR]`, and Workday records the gate's comment under the gate's Run As person, so a "written by the ISU" filter can't tell them apart (the Comment object has no account or step field). Workday also offers no app link to Request Time Off or Change Job events (View Business Objects Available to Extend). So the rule also requires the app's route record for the worker, which only FormGate writes and only HR Administrators and the forms ISU can change. Tested live 2026-11-19: a real HR request routes (comment 1, record 1), a hand-typed tag on a worker whose record says normal does not (comment 1, record 0). Left over: with two open requests for one worker, the record reflects the latest gate run.
+Until 2026-11-19 the rule needed two keys (the marker comment and a per-worker route record), because the gate ran as a person and Workday recorded its comment under that person. Now FormGate runs as the forms ISU and submits the route marker To Do as the ISU; an ISU is not a person, so its comment has **no Comment by Person**. A tag typed by anyone else does. So:
+
+- **TEST DYN Comment Route HR** (True/False on Comment): Comment contains `[ROUTE:HR]` **And** Comment by Person is empty.
+- **TEST DYN Event Route HR Comments** (Count Related Instances on Action Event): the event's comments where that is true.
+- **TEST DYN Route HR** (condition rule): TEST DYN Event Route HR Comments greater than 0. The worker key (TEST DYN LRV Event Route HR Count) is no longer part of the rule, so two open requests for one worker each route on their own event.
+
+The route marker To Do needs a group the ISU's work can complete: add the ISU's integration system security group to the marker step's groups (Edit Definition). The route record FormGate still writes is keyed by the event (`TEST:DYN:ROUTE:<event WID>`) and is kept for audit only.
 
 ## When a request ends
 
@@ -73,3 +79,62 @@ FormEnded closes a request's open form assignments the moment it is cancelled, r
 
 - **FormReconcile** (integration system TEST:DYN:RECON Integration, hourly) closes assignments whose event ended and creates missing extra assignments; it writes a RECON summary record per run.
 - **ALERT records** (formCode ALERT on the Results page) mark every FormAssign or FormGate run that stopped; check them after a bulk start or a release.
+
+## Tiered ownership setup (2026-11-20)
+
+How to run a process on composed forms (blocks owned by enterprise, department and team). Design: TIERED-DESIGN.md.
+
+### Support levels
+
+| Level | Meaning | Needs |
+|---|---|---|
+| Gate + route | Form, gate that can cancel, routing to an approval step | A Service step for FormCompose, a Service step for FormGate with the route marker To Do, an approval step after them, the routing calculated fields and rule above |
+| Gate only | Form and gate, no routing | Both Service steps; no approval step to route to |
+| Form only | Form collected, no gate | A FormCompose Service step (or the integration subscription after completion); the event can't be cancelled |
+| Not supported | No form | No Service step possible, or no subject the app can resolve |
+
+FormReadiness (Governance > Setup and readiness) lists every definition of every supported process type with its level and the fix.
+
+### Subject mapping
+
+| Process | Subject passed to FormCompose and FormGate |
+|---|---|
+| Request Time Off, Termination | the event's worker (target): leave `worker` empty |
+| Change Job (organization-targeted) | `worker` = WID from Field "Worker" |
+| Hire | through Onboarding: put FormCompose on Onboarding (processType Onboarding), so the form and kit go to the new worker |
+| Sub-processes | their own FormCompose (if the person fills something there) and FormGate |
+
+### Steps per process
+
+1. **Service step FormCompose** (instead of FormAssign) early in the process: Orchestration Service, FormCompose, inputs actionEvent = Workday ID, processType = the code used on the block assignments (TimeOff, ChangeJob, Onboarding, Termination, Leave, Campaign), worker as above. Run As the forms ISU.
+2. **FormGate** as before, with formCode empty (the composed assignment is the event's only one) and noForm = pass where a request may have no blocks.
+3. **Org map:** Governance > Departments (mark each department), then Org map > OK. Rebuild after each reorganization.
+4. **Settings:** Governance > Settings > OK (the defaults are the plan's: 12 / 10 / 8 slots, 250 workers, 12 months, 80% / 50% / 3 peers, retention 84 / 36 / 24 months, welcome 3 days before).
+5. **Blocks:** Form Studio > New form: owner organization (sets the tier), questions with classification, library key, reusable and validity; then Publish (governance tick for enterprise blocks, Restricted questions and department blocks over the threshold).
+6. **Block assignments:** Governance > Block assignments: block family, process, owner org, scope (Org only / Org + subordinates), gate on, order.
+7. **Onboarding kit:** Governance > Delivered features (enable the joiner kit) and Kit designer (department and team items; elevated items need governance). The manager's prepare task opens at `kitPrepare.htmld?event=<Onboarding event WID>`; fulfillers use `kitQueue.htmld?group=IT`.
+
+### Security (per tenant)
+
+| Domain | Who |
+|---|---|
+| Dyn Forms Fill | All Employees (and pre-hires where the tenant allows) |
+| Use: Dynamic Forms | HR administrators, the forms ISU group (Get/Put) |
+| Dyn Forms Author | Forms admins and managers who own blocks |
+| Dyn Forms Govern | The HRIS forms governance group |
+| Dyn Confidential Answers | HR partner, HR administrator; the forms ISU group (Get/Put) |
+| Dyn Forms Responses Restricted | A small named group; the forms ISU group (Get/Put) |
+| Dyn Forms Integration | The forms ISU group only |
+| Dyn Forms Onboarding Fulfil | IT, system owners, Workday security (per fulfiller group) |
+
+The forms ISU group also needs Get on a worker data domain that shows a worker's primary supervisory organization (Worker Data: Public Worker Reports in the dev tenant), or FormCompose can't find the subject's org and uses enterprise blocks only. Activate Pending Security Policy Changes after each change.
+
+### Calculated fields to create
+
+Calculated fields can't ship in an app; create these (exact names, the rule reads them):
+
+| Name | Type | Business object | Definition |
+|---|---|---|---|
+| TEST DYN Comment Route HR | True/False Condition | Comment | Comment contains `[ROUTE:HR]` And Comment by Person is empty |
+| TEST DYN Event Route HR Comments | Count Related Instances | Action Event | All Comments where TEST DYN Comment Route HR is true |
+| Condition rule TEST DYN Route HR | Business process condition rule | | TEST DYN Event Route HR Comments greater than 0 |
