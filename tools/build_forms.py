@@ -16,11 +16,12 @@ DOM = ["UseDynamicForms"]
 REF = json.load(open(os.path.join(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')), 'app', 'appManifest.json'), encoding='utf-8'))['referenceId']
 FAIL = [{"code": 400}, {"code": 403}]
 LIMIT = 100 * 1024
+WARN = 85 * 1024   # App Hub warns from 85 KB (build log 2026-11-19); generated pages stay under it
 SMALL_SLOTS = 10
 # question slots on the real fill pages (DynFormLookup, DynMyFill); the copy page's warning uses the same number.
 # Raised from 12 (2026-11-19) after the slot widgets moved to short page functions (F, L, S, R): page size, not a
 # platform limit, set the old number.
-LOOKUP_SLOTS = 30
+LOOKUP_SLOTS = 28   # 30 put DynMyFill at 85.1 KB, over App Hub's 85 KB warning (2026-11-19)
 TYPES = ["text", "number", "date", "choice", "yesno"]   # widget order in a slot; df.wi() returns 1..5
 
 
@@ -870,7 +871,7 @@ def biggest(pid, title, modes):
     lo, hi = 1, 200
     while lo < hi:
         mid = (lo + hi + 1) // 2
-        if fill_page(pid, title, mid, modes, guides=False) <= LIMIT - 2048:   # leave 2 KB for the labels pass
+        if fill_page(pid, title, mid, modes, guides=False) <= WARN - 2048:   # under App Hub's 85 KB warning, 2 KB left for the labels pass
             lo = mid
         else:
             hi = mid - 1

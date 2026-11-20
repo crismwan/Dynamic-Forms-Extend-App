@@ -599,8 +599,30 @@ RECONCILE = [
 ]
 
 
+# FormPrune (2026-11-19): deletes form definitions this app should not hold (the move copied all 19 Extend Toolkit forms;
+# only the onboarding forms stay). Body {"forms": "<id>,<id>", "q1": "...", "q2": "...", "q3": "..."}: comma-joined WIDs
+# chosen on the DynFormPrune page, each list up to 100 (the bulk DELETE limit). An empty list deletes nothing.
+def _ids(key):
+    return (REQ + '.stringAtJsonPathWithDefault("$.' + key + '", "").replace("\\"", "").replace("\\\\", "").replace(" ", "")')
+
+
+def _bulk_body(key):
+    return ('"{\\"data\\": [{\\"id\\": \\"".append(data.req.' + key + '.replace(",", "\\"}, {\\"id\\": \\"")).append("\\"}]}")')
+
+
+PRUNE = [values("req", [("app", "String", _APP)] + [(k, "String", _ids(k)) for k in ("forms", "q1", "q2", "q3")]),
+         values("bodies", [(k, "String", _bulk_body(k)) for k in ("forms", "q1", "q2", "q3")])]
+for k, coll in (("q1", "dynQuestions"), ("q2", "dynQuestions"), ("q3", "dynQuestions"), ("forms", "dynForms")):
+    PRUNE.append(template(k + "Body", "{{data.bodies." + k + "}}"))
+    PRUNE.append(send("del_" + k, "DELETE", '(if (data.req.' + k + '.isEmpty()) data.req.app.append("' + coll + '/none") else data.req.app.append("' + coll + '?bulk=true"))',
+                      'data("' + k + 'Body", "message")'))
+PRUNE.append(values("out", [(k, "String", '(if (data.req.' + k + '.isEmpty()) "skipped" else data.del_' + k + '.responseStatusCode.format("0"))') for k in ("forms", "q1", "q2", "q3")]))
+PRUNE.append(template("answer", '{"forms": "{{data.out.forms}}", "q1": "{{data.out.q1}}", "q2": "{{data.out.q2}}", "q3": "{{data.out.q3}}"}'))
+
+
 def write_forms(write, ORCH, DOM):
     os.makedirs(ORCH, exist_ok=True)
+    write(os.path.join(ORCH, 'FormPrune.orchestration'), flow("FormPrune", PRUNE, 'data("answer", "message")', DOM))
     write(os.path.join(ORCH, 'DynClose.orchestration'), flow("DynClose", DYNCLOSE, 'data("answer", "message")', DOM))
     write(os.path.join(ORCH, 'FormAssign.orchestration'), bp_flow("FormAssign", FORMASSIGN, [
         _param("actionEvent"), _param("formCode", 's"""TEST:DYN:ADDR"""'), _param("worker", '""')]))

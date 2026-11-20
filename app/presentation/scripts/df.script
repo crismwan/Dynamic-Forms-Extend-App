@@ -512,8 +512,8 @@ var cpPlan = function(src, picked, tgt, code, mode, sizes) {
     if (yt == 'subform') { slotN = slotN + ysz; }
     if (yt == 'repeat') { var mx = par(y, 'max'); slotN = slotN + ysz * (empty(mx) ? 1 : mx.toInt()); }
   }
-  if (slotN > 30) { notes.add('Warning: the form needs ' + slotN + ' question slots (sub-form questions and every repeating copy count), but the fill page shows 30; the rest will not appear. Lower a repeating group\'s max or split the form.'); }
-  if (slotN <= 30 && subN > 0) { notes.add('The fill page will use ' + slotN + ' of its 30 question slots, counting sub-form questions and every repeating copy.'); }
+  if (slotN > 28) { notes.add('Warning: the form needs ' + slotN + ' question slots (sub-form questions and every repeating copy count), but the fill page shows 28; the rest will not appear. Lower a repeating group\'s max or split the form.'); }
+  if (slotN <= 28 && subN > 0) { notes.add('The fill page will use ' + slotN + ' of its 28 question slots, counting sub-form questions and every repeating copy.'); }
   if (subN > 3) { notes.add('Warning: the form will have ' + subN + ' sub-forms or repeating groups; the fill page shows the first 3.'); }
   var res = {:};
   res.put('rows', out);

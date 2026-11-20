@@ -18,6 +18,10 @@ Q_FIELDS = [f["name"] for f in json.load(open(os.path.join(APP, 'model', 'DynQue
 INTS = {"version", "sortOrder"}
 BOOLS = {"requestFramework", "required", "confidential"}
 CHUNKS = 12
+# Only the onboarding forms belong in this app (user, 2026-11-19): TEST:DYN:ADDR (all versions) and TEST:DYN:SW (its
+# alsoAssign extra form). Import copies only these; DynFormPrune deletes every other form and question here.
+KEEP = ["TEST:DYN:ADDR", "TEST:DYN:SW"]
+KEEPS = "|" + "|".join(KEEP) + "|"
 
 
 def wql(name, query):
@@ -37,11 +41,12 @@ def mapper(fields):
     return " ".join(parts)
 
 
-SCRIPT = ("<% var have = function() { '|' + (mine.data ?? []).map(f => { (f.code ?? '') + '#' + (f.version ?? '') }).join('|') + '|'; }; "
+KEEPFN = ("var keep = function(c) { '" + KEEPS + "'.contains('|' + ('' + (c ?? '')).substringBefore('@') + '|'); }; ")
+SCRIPT = ("<% " + KEEPFN + "var have = function() { '|' + (mine.data ?? []).map(f => { (f.code ?? '') + '#' + (f.version ?? '') }).join('|') + '|'; }; "
           "var keyOf = function(r) { (r.code ?? '') + '#' + ('' + (r.version ?? '')).substringBefore('.'); }; "
-          "var newForms = function() { var h = have(); (srcForms.data ?? []).filter(r => { !h.contains('|' + keyOf(r) + '|') }); }; "
+          "var newForms = function() { var h = have(); (srcForms.data ?? []).filter(r => { !h.contains('|' + keyOf(r) + '|') && keep(r.code) }); }; "
           "var haveCodes = function() { '|' + (mineQ.data ?? []).map(q => { q.formCode ?? '' }).distinct().join('|') + '|'; }; "
-          "var newQs = function() { var h = haveCodes(); (srcQs.data ?? []).filter(r => { !h.contains('|' + (r.formCode ?? '') + '|') }); }; "
+          "var newQs = function() { var h = haveCodes(); (srcQs.data ?? []).filter(r => { !h.contains('|' + (r.formCode ?? '') + '|') && keep(r.formCode) }); }; "
           "var formRow = function(r) { var m = {:}; " + mapper(FORM_FIELDS) + " m.copiedFrom = 'import:" + SOURCE + "'; m; }; "
           "var qRow = function(r) { var m = {:}; " + mapper(Q_FIELDS) + " m; }; "
           "var chunk = function(i) { var all = newQs(); var a = i * 100; a >= all.size() ? [] : all.subList(a, (a + 100) > all.size() ? all.size() : (a + 100)).map(r => { qRow(r) }); }; %>")
@@ -80,4 +85,36 @@ amd = json.load(open(amd_path, encoding='utf-8'))
 if not any(t["id"] == "DynFormImport" for t in amd["tasks"]):
     amd["tasks"].append({"id": "DynFormImport", "routingPattern": "/dynFormImport", "page": {"id": "DynFormImport"}})
     open(amd_path, 'w', encoding='utf-8').write(json.dumps(amd, indent=2, ensure_ascii=False) + '\n')
-print('DynFormImport page')
+APPREF = json.load(open(os.path.join(APP, 'appManifest.json')))["referenceId"]
+PSCRIPT = ("<% " + KEEPFN +
+           "var allQs = function() { list:flatten([ownQs0.data ?? [], ownQs1.data ?? [], ownQs2.data ?? []]); }; "
+           "var dropForms = function() { (ownForms.data ?? []).filter(r => { !keep(r.code) }); }; "
+           "var dropQs = function() { allQs().filter(r => { !keep(r.formCode) }); }; "
+           "var ids = function(l) { l.map(r => { r.id }).join(','); }; "
+           "var part = function(i) { var all = dropQs(); var a = i * 100; a >= all.size() ? '' : ids(all.subList(a, (a + 100) > all.size() ? all.size() : (a + 100))); }; %>")
+prune = {"id": "DynFormPrune", "securityDomains": DOM, "script": PSCRIPT, "endPoints": [
+    {"name": "ownForms", "baseUrlType": "app", "url": "dynForms?limit=100", "authType": "sso", "failOnStatusCodes": FAIL},
+    {"name": "ownQs0", "baseUrlType": "app", "url": "dynQuestions?limit=100", "authType": "sso", "failOnStatusCodes": FAIL},
+    {"name": "ownQs1", "baseUrlType": "app", "url": "dynQuestions?limit=100&offset=100", "authType": "sso"},
+    {"name": "ownQs2", "baseUrlType": "app", "url": "dynQuestions?limit=100&offset=200", "authType": "sso"}],
+    "outboundData": {"outboundEndPoints": [
+        {"name": "launchPrune", "baseUrlType": "orchestrate", "url": "/FormPrune/launch", "httpMethod": "POST", "authType": "sso",
+         "failOnStatusCodes": FAIL, "exclude": "<% dropForms().size() + dropQs().size() == 0 %>",
+         "onSend": "<% self.data = {:}; self.data.forms = ids(dropForms()); self.data.q1 = part(0); self.data.q2 = part(1); self.data.q3 = part(2); self.data; %>"}]},
+    "presentation": {"pageType": "EDIT", "title": {"type": "title", "id": "pageTitle", "label": "Keep only the onboarding forms"},
+                     "cancelOverride": {"taskId": "Home"},
+                     "body": {"type": "section", "id": "bodySection", "children": [
+                         {"type": "fieldSet", "id": "pruneFieldSet", "title": "What OK will delete", "children": [
+                             {"type": "text", "id": "keepText", "label": "Kept", "enabled": False, "value": "<% '" + ", ".join(KEEP) + " (every version)' %>"},
+                             {"type": "text", "id": "dropFormsText", "label": "Forms to delete", "enabled": False,
+                              "value": "<% '' + dropForms().size() + ' of ' + (ownForms.data ?? []).size() %>"},
+                             {"type": "text", "id": "dropQsText", "label": "Questions to delete", "enabled": False,
+                              "value": "<% '' + dropQs().size() + ' of ' + allQs().size() + (allQs().size() >= 300 ? ' (300 read: run it again after OK)' : '') %>"},
+                             {"type": "text", "id": "dropCodesText", "label": "Form codes", "enabled": False,
+                              "value": "<% dropForms().map(r => { (r.code ?? '') + '@' + ('' + (r.version ?? '')).substringBefore('.') }).join(', ') %>"}]}]}}}
+open(os.path.join(APP, 'presentation', 'DynFormPrune.pmd'), 'w', encoding='utf-8').write(json.dumps(prune, indent=2, ensure_ascii=False) + '\n')
+amd = json.load(open(amd_path, encoding='utf-8'))
+if not any(t["id"] == "DynFormPrune" for t in amd["tasks"]):
+    amd["tasks"].append({"id": "DynFormPrune", "routingPattern": "/dynFormPrune", "page": {"id": "DynFormPrune"}})
+    open(amd_path, 'w', encoding='utf-8').write(json.dumps(amd, indent=2, ensure_ascii=False) + '\n')
+print('DynFormImport and DynFormPrune pages')
