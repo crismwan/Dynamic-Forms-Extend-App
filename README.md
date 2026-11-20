@@ -14,7 +14,7 @@ Moved out of the Extend Toolkit app on 2026-11-19. The plan it is growing into: 
 
 ```
 python3 tools/build_app.py && python3 tools/build_browse.py && python3 tools/build_forms.py \
-  && python3 tools/build_studio.py && python3 tools/build_labels.py
+  && python3 tools/build_studio.py && python3 tools/build_import.py && python3 tools/build_labels.py
 node tools/check.js
 ```
 

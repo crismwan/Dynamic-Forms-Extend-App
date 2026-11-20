@@ -1,0 +1,342 @@
+{
+  "id": "DynFormImport",
+  "securityDomains": [
+    "UseDynamicForms"
+  ],
+  "script": "<% var have = function() { '|' + (mine.data ?? []).map(f => { (f.code ?? '') + '#' + (f.version ?? '') }).join('|') + '|'; }; var keyOf = function(r) { (r.code ?? '') + '#' + ('' + (r.version ?? '')).substringBefore('.'); }; var newForms = function() { var h = have(); (srcForms.data ?? []).filter(r => { !h.contains('|' + keyOf(r) + '|') }); }; var haveCodes = function() { '|' + (mineQ.data ?? []).map(q => { q.formCode ?? '' }).distinct().join('|') + '|'; }; var newQs = function() { var h = haveCodes(); (srcQs.data ?? []).filter(r => { !h.contains('|' + (r.formCode ?? '') + '|') }); }; var formRow = function(r) { var m = {:}; if (!empty(r.code)) { m.code = '' + r.code; } if (!empty(r.formName)) { m.formName = '' + r.formName; } if (!empty(r.version)) { m.version = ('' + r.version).substringBefore('.').toInt(); } if (!empty(r.status)) { m.status = '' + r.status; } if (!empty(r.description)) { m.description = '' + r.description; } if (!empty(r.targetObject)) { m.targetObject = '' + r.targetObject; } if (!empty(r.dataSources)) { m.dataSources = '' + r.dataSources; } m.requestFramework = ('' + (r.requestFramework ?? false)) == 'true'; if (!empty(r.requestType)) { m.requestType = '' + r.requestType; } if (!empty(r.businessProcess)) { m.businessProcess = '' + r.businessProcess; } if (!empty(r.copiedFrom)) { m.copiedFrom = '' + r.copiedFrom; } if (!empty(r.family)) { m.family = '' + r.family; } if (!empty(r.noFormPolicy)) { m.noFormPolicy = '' + r.noFormPolicy; } if (!empty(r.failPolicy)) { m.failPolicy = '' + r.failPolicy; } if (!empty(r.alsoAssign)) { m.alsoAssign = '' + r.alsoAssign; } m.copiedFrom = 'import:developertoolkitappv1_kwswrv'; m; }; var qRow = function(r) { var m = {:}; if (!empty(r.formCode)) { m.formCode = '' + r.formCode; } if (!empty(r.qKey)) { m.qKey = '' + r.qKey; } if (!empty(r.sortOrder)) { m.sortOrder = ('' + r.sortOrder).substringBefore('.').toInt(); } if (!empty(r.qType)) { m.qType = '' + r.qType; } if (!empty(r.qLabel)) { m.qLabel = '' + r.qLabel; } if (!empty(r.help)) { m.help = '' + r.help; } m.required = ('' + (r.required ?? false)) == 'true'; if (!empty(r.qOptions)) { m.qOptions = '' + r.qOptions; } if (!empty(r.showKey)) { m.showKey = '' + r.showKey; } if (!empty(r.showOp)) { m.showOp = '' + r.showOp; } if (!empty(r.showValue)) { m.showValue = '' + r.showValue; } if (!empty(r.calc)) { m.calc = '' + r.calc; } if (!empty(r.lookup)) { m.lookup = '' + r.lookup; } if (!empty(r.prefill)) { m.prefill = '' + r.prefill; } if (!empty(r.regex)) { m.regex = '' + r.regex; } if (!empty(r.regexMessage)) { m.regexMessage = '' + r.regexMessage; } if (!empty(r.dataSource)) { m.dataSource = '' + r.dataSource; } if (!empty(r.sourceField)) { m.sourceField = '' + r.sourceField; } if (!empty(r.targetField)) { m.targetField = '' + r.targetField; } if (!empty(r.params)) { m.params = '' + r.params; } if (!empty(r.labels)) { m.labels = '' + r.labels; } m.confidential = ('' + (r.confidential ?? false)) == 'true'; m; }; var chunk = function(i) { var all = newQs(); var a = i * 100; a >= all.size() ? [] : all.subList(a, (a + 100) > all.size() ? all.size() : (a + 100)).map(r => { qRow(r) }); }; %>",
+  "endPoints": [
+    {
+      "name": "srcForms",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT workdayID, code, formName, version, status, description, targetObject, dataSources, requestFramework, requestType, businessProcess, copiedFrom, family, noFormPolicy, failPolicy, alsoAssign FROM developertoolkitappv1_kwswrv_dynForms') %>"
+    },
+    {
+      "name": "srcQs",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT workdayID, formCode, qKey, sortOrder, qType, qLabel, help, required, qOptions, showKey, showOp, showValue, calc, lookup, prefill, regex, regexMessage, dataSource, sourceField, targetField, params, labels, confidential FROM developertoolkitappv1_kwswrv_dynQuestions') %>"
+    },
+    {
+      "name": "mine",
+      "baseUrlType": "app",
+      "url": "dynForms?limit=100",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mineQ",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT formCode FROM ' + 'dynamicforms_kwswrv_dynQuestions') %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postForms",
+        "baseUrlType": "app",
+        "url": "dynForms?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newForms().size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = newForms().map(r => { formRow(r) }); self.data; %>"
+      },
+      {
+        "name": "postQuestions1",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(0); self.data; %>"
+      },
+      {
+        "name": "postQuestions2",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 100 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(1); self.data; %>"
+      },
+      {
+        "name": "postQuestions3",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 200 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(2); self.data; %>"
+      },
+      {
+        "name": "postQuestions4",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 300 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(3); self.data; %>"
+      },
+      {
+        "name": "postQuestions5",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 400 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(4); self.data; %>"
+      },
+      {
+        "name": "postQuestions6",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 500 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(5); self.data; %>"
+      },
+      {
+        "name": "postQuestions7",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 600 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(6); self.data; %>"
+      },
+      {
+        "name": "postQuestions8",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 700 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(7); self.data; %>"
+      },
+      {
+        "name": "postQuestions9",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 800 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(8); self.data; %>"
+      },
+      {
+        "name": "postQuestions10",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 900 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(9); self.data; %>"
+      },
+      {
+        "name": "postQuestions11",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 1000 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(10); self.data; %>"
+      },
+      {
+        "name": "postQuestions12",
+        "baseUrlType": "app",
+        "url": "dynQuestions?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% newQs().size() <= 1100 %>",
+        "onSend": "<% self.data = {:}; self.data.data = chunk(11); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.DynFormImport_pageTitle_label %>"
+    },
+    "cancelOverride": {
+      "taskId": "Home"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "importFieldSet",
+          "title": "<% presentationLabels.DynFormImport_importFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "sourceText",
+              "label": "<% presentationLabels.DynFormImport_sourceText_label %>",
+              "enabled": false,
+              "value": "<% 'developertoolkitappv1_kwswrv' %>"
+            },
+            {
+              "type": "text",
+              "id": "formsText",
+              "label": "<% presentationLabels.DynFormImport_formsText_label %>",
+              "enabled": false,
+              "value": "<% '' + newForms().size() + ' of ' + (srcForms.data ?? []).size() + ' (the rest are here already)' %>"
+            },
+            {
+              "type": "text",
+              "id": "questionsText",
+              "label": "<% presentationLabels.DynFormImport_questionsText_label %>",
+              "enabled": false,
+              "value": "<% '' + newQs().size() + ' of ' + (srcQs.data ?? []).size() + (newQs().size() > 1200 ? ' (over the limit: run it again after OK)' : '') %>"
+            },
+            {
+              "type": "text",
+              "id": "codesText",
+              "label": "<% presentationLabels.DynFormImport_codesText_label %>",
+              "enabled": false,
+              "value": "<% newForms().map(r => { keyOf(r) }).join(', ') %>"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

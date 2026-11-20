@@ -43,7 +43,7 @@ jobs:
       - name: Static checks
         run: node tools/check.js
       - name: The page builders reproduce the committed pages
-        run: python3 tools/build_app.py && python3 tools/build_browse.py && python3 tools/build_forms.py && python3 tools/build_studio.py && python3 tools/build_labels.py && git diff --exit-code -- app/presentation app/model app/orchestration
+        run: python3 tools/build_app.py && python3 tools/build_browse.py && python3 tools/build_forms.py && python3 tools/build_studio.py && python3 tools/build_import.py && python3 tools/build_labels.py && git diff --exit-code -- app/presentation app/model app/orchestration
       - name: Zip the app
         run: cd app && zip -qr ../dynamic-forms-app.zip . && cd .. && unzip -l dynamic-forms-app.zip
       - uses: actions/upload-artifact@v6
