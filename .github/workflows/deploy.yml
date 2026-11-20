@@ -182,6 +182,7 @@ jobs:
         if: steps.ready.outputs.go == 'true' && env.ACTION == 'deploy'
         run: |
           set -uo pipefail
+          CHECK_APP="${APP_DIR}" node tools/check.js --deploy
           # wdcli reports a refused upload only as "Unable to upload app. Error". Make it print App Hub's response
           # (status + body), with anything token-like removed (2026-11-06: an orchestration rename was refused).
           IDX=$(find /opt/wdcli -path "*lib/commands/index.js" | head -1)
