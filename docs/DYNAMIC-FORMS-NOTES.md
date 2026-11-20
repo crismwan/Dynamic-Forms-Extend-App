@@ -264,3 +264,4 @@ Pending until Activate Pending Security Policy Changes.
 - Finance & Administration (Next Level Enterprise) marked as a second department for test 7.15; unmark it afterwards if it gets in the way.
 - **DynFormImport fails on load** (srcForms WQL against the Extend Toolkit answers 400): the migration page only, not the tiered plan.
 - The built-in browser pane shrank mid-test, so a 1600x1000 emulated viewport put the error widget off screen; with the emulation cleared it could be opened.
+- **After the security changes (activated 11/20 ~10:53):** Dylan Johnson (Customer Support - Canada) has no vacation balance left (refusal "exceeds the maximum"); Meg Saunders has no position (A1050). A start for **Mason Webb** (same team) was clicked at ~10:58 when the browser bridge dropped: check DynFormBulk/Results for up to 10 new Mason Webb requests and cancel them with "TEST run cleanup" afterwards.
