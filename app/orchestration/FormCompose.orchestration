@@ -1133,6 +1133,51 @@
                       }
                     }
                   }
+                },
+                {
+                  "_type": "Assignment",
+                  "_value": {
+                    "param": {
+                      "_type": "Parameter",
+                      "_value": {
+                        "name": {
+                          "_type": "Identifier",
+                          "_value": "why"
+                        },
+                        "type": {
+                          "_type": "Type",
+                          "_value": "String"
+                        },
+                        "default": {
+                          "_type": [
+                            "Opt",
+                            "Any"
+                          ],
+                          "_value": null
+                        }
+                      }
+                    },
+                    "expr": {
+                      "_type": [
+                        "Expr",
+                        "String"
+                      ],
+                      "_value": {
+                        "type": {
+                          "_type": "Type",
+                          "_value": "String"
+                        },
+                        "source": {
+                          "_type": "String",
+                          "_value": "data.getWorker.response.toString().normalizeSpace().replace(\"\\\\\", \"/\").replace(\"\\\"\", \"'\").truncate(200)"
+                        },
+                        "isAuto": {
+                          "_type": "Boolean",
+                          "_value": false
+                        }
+                      }
+                    }
+                  }
                 }
               ]
             },
@@ -1165,7 +1210,7 @@
             },
             "message": {
               "_type": "TextTemplate",
-              "_value": "{\"responseKey\": \"TEST:DYN:ALERT{{data.wkMsg.stamp}}W\", \"formCode\": \"ALERT\", \"status\": \"Needs attention: FormCompose could not read the worker (HTTP {{data.wkMsg.code}}), so only enterprise blocks were used. Give the run-as account Get on worker data.\", \"nextForm\": \"\", \"parentKey\": \"\", \"bpEvent\": \"{{data.req.ev}}\", \"bpTarget\": \"{{data.req.who}}\"}"
+              "_value": "{\"responseKey\": \"TEST:DYN:ALERT{{data.wkMsg.stamp}}W\", \"formCode\": \"ALERT\", \"status\": \"Needs attention: FormCompose could not read the worker (HTTP {{data.wkMsg.code}}: {{data.wkMsg.why}}), so only enterprise blocks were used. Give the run-as account Get on worker data.\", \"nextForm\": \"\", \"parentKey\": \"\", \"bpEvent\": \"{{data.req.ev}}\", \"bpTarget\": \"{{data.req.who}}\"}"
             },
             "contentType": {
               "_type": "String",
