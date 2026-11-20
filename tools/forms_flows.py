@@ -505,9 +505,11 @@ _KIT = 'data.kits.item'
 
 def _covers(item):
     g = lambda k: item + '.stringAtJsonPathWithDefault("$.%s", "")' % k
-    return ('(if (%s.equals("false")) false else (if (data.om.path.isEmpty()) %s.equals("Enterprise") else '
+    # active is a BOOLEAN: stringAtJsonPath on it fails the run (live 2026-11-20, "FormCompose failed at asgs.a"),
+    # so test the item's JSON text instead.
+    return ('(if (%s) false else (if (data.om.path.isEmpty()) %s.equals("Enterprise") else '
             '(if (%s.equals("subs")) data.om.path.contains("|".append(%s).append("|")) else %s.equals(data.om.org))))'
-            % (item + '.stringAtJsonPathWithDefault("$.active", "true")', g("tier"), g("scope"), g("ownerWid"), g("ownerWid")))
+            % (item + '.toString().replace(" ", "").contains("\\"active\\":false")', g("tier"), g("scope"), g("ownerWid"), g("ownerWid")))
 
 
 FORMCOMPOSE = [

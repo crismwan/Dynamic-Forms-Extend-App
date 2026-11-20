@@ -2274,7 +2274,7 @@
                                     },
                                     "source": {
                                       "_type": "String",
-                                      "_value": "(if (data.asgs.item.stringAtJsonPathWithDefault(\"$.active\", \"true\").equals(\"false\")) false else (if (data.om.path.isEmpty()) data.asgs.item.stringAtJsonPathWithDefault(\"$.tier\", \"\").equals(\"Enterprise\") else (if (data.asgs.item.stringAtJsonPathWithDefault(\"$.scope\", \"\").equals(\"subs\")) data.om.path.contains(\"|\".append(data.asgs.item.stringAtJsonPathWithDefault(\"$.ownerWid\", \"\")).append(\"|\")) else data.asgs.item.stringAtJsonPathWithDefault(\"$.ownerWid\", \"\").equals(data.om.org)))).and(data.a.fam.isEmpty().not())"
+                                      "_value": "(if (data.asgs.item.toString().replace(\" \", \"\").contains(\"\\\"active\\\":false\")) false else (if (data.om.path.isEmpty()) data.asgs.item.stringAtJsonPathWithDefault(\"$.tier\", \"\").equals(\"Enterprise\") else (if (data.asgs.item.stringAtJsonPathWithDefault(\"$.scope\", \"\").equals(\"subs\")) data.om.path.contains(\"|\".append(data.asgs.item.stringAtJsonPathWithDefault(\"$.ownerWid\", \"\")).append(\"|\")) else data.asgs.item.stringAtJsonPathWithDefault(\"$.ownerWid\", \"\").equals(data.om.org)))).and(data.a.fam.isEmpty().not())"
                                     },
                                     "isAuto": {
                                       "_type": "Boolean",
@@ -5826,7 +5826,7 @@
                                     },
                                     "source": {
                                       "_type": "String",
-                                      "_value": "(if (data.kits.item.stringAtJsonPathWithDefault(\"$.active\", \"true\").equals(\"false\")) false else (if (data.om.path.isEmpty()) data.kits.item.stringAtJsonPathWithDefault(\"$.tier\", \"\").equals(\"Enterprise\") else (if (data.kits.item.stringAtJsonPathWithDefault(\"$.scope\", \"\").equals(\"subs\")) data.om.path.contains(\"|\".append(data.kits.item.stringAtJsonPathWithDefault(\"$.ownerWid\", \"\")).append(\"|\")) else data.kits.item.stringAtJsonPathWithDefault(\"$.ownerWid\", \"\").equals(data.om.org)))).and(data.k.status.equals(\"Published\"))"
+                                      "_value": "(if (data.kits.item.toString().replace(\" \", \"\").contains(\"\\\"active\\\":false\")) false else (if (data.om.path.isEmpty()) data.kits.item.stringAtJsonPathWithDefault(\"$.tier\", \"\").equals(\"Enterprise\") else (if (data.kits.item.stringAtJsonPathWithDefault(\"$.scope\", \"\").equals(\"subs\")) data.om.path.contains(\"|\".append(data.kits.item.stringAtJsonPathWithDefault(\"$.ownerWid\", \"\")).append(\"|\")) else data.kits.item.stringAtJsonPathWithDefault(\"$.ownerWid\", \"\").equals(data.om.org)))).and(data.k.status.equals(\"Published\"))"
                                     },
                                     "isAuto": {
                                       "_type": "Boolean",
