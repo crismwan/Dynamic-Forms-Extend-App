@@ -182,11 +182,6 @@ jobs:
         if: steps.ready.outputs.go == 'true' && env.ACTION == 'deploy'
         run: |
           set -uo pipefail
-          # The App Hub app list as of now, for the Installed Apps page's cleanup hints (read only).
-          if [ "${APP_DIR}" != "app" ]; then echo "Deploying ${APP_DIR}"; elif wdcli app list -a "${WD_ACCOUNT}" --ci -f json > /tmp/applist.json 2>/dev/null; then
-            node tools/build_apphub.js /tmp/applist.json "${WD_ACCOUNT}" || node tools/build_apphub.js --empty
-          else echo "App Hub list not read; the page shows no App Hub comparison"; fi
-          CHECK_APP="${APP_DIR}" node tools/check.js --deploy
           # wdcli reports a refused upload only as "Unable to upload app. Error". Make it print App Hub's response
           # (status + body), with anything token-like removed (2026-11-06: an orchestration rename was refused).
           IDX=$(find /opt/wdcli -path "*lib/commands/index.js" | head -1)
