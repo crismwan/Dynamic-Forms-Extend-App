@@ -88,6 +88,13 @@ Last update: 2026-11-20 ~09:30 Pacific. **Deployed** (after renaming a reserved 
 ## Next
 
 1. ~~Deploy~~ done 2026-11-20 (token refresh: README, "Refreshing tokens").
-2. Security setup (approved): Restricted group, new domains, ISU worker-data Get; activate.
-3. Org map: mark departments, rebuild; settings OK.
-4. Live tests: RETEST section 7.
+2. ~~Security setup~~ done by the user 2026-11-20 (Author and Govern policies, activated), **except**: the forms ISU's group (TEST:LAB:SUB ISSG) still lacks Get on worker data, so FormCompose can't read the worker's organization (RETEST 7.5 blocked). Not yet created: Onboarding Fulfil, Responses Restricted, Integration policies (7.2, 7.20 blocked).
+3. ~~Org map~~ done 2026-11-20: departments Operations and Finance & Administration (the second marked for test 7.15), map rebuilt (27 orgs); settings saved.
+4. Live tests (RETEST 7), results so far, 2026-11-20:
+   - **FormCompose fixed:** the first 10 runs stopped at step asgs.a (ALERTs): `stringAtJsonPathWithDefault` on the BOOLEAN `active` field fails the run. Now reads the item's JSON text. After the fix a request got one composed form and one assignment (parentKey FORM:COMPOSED).
+   - **FormCompose now ALERTs** when it can't read the worker (it used to fall back to enterprise blocks only without a trace).
+   - 7.5 partial: composed form TEST:DYN:CMP:20261120172743022 holds only the enterprise block, because the worker read failed (subjectOrg empty). Retest after the ISU grant.
+   - 7.6 **pass:** an 11-question department block (TEST:DYN:BIGD, owner Operations) was refused at publish with both approvals ticked: "This Department block takes 11 slots; the Department budget is 10."
+   - 7.14 partial pass: Block assignments' Reach column updates as owner and scope change (Customer Support - Canada org only: 1 orgs, 12 workers; Executive Management Group + subordinates: 17 orgs, 53 workers). Applying two levels down needs 7.5 working.
+   - 7.15 **pass** (Block assignments): Executive Management Group as a Team owner with Org + subordinates gave "A team block can only reach orgs in one department: this scope reaches 2." (edit cancelled, not saved).
+   - Remaining: 7.1-7.4, 7.7-7.13, 7.16-7.24.

@@ -107,7 +107,7 @@ FormReadiness (Governance > Setup and readiness) lists every definition of every
 ### Steps per process
 
 1. **Service step FormCompose** (instead of FormAssign) early in the process: Orchestration Service, FormCompose, inputs actionEvent = Workday ID, processType = the code used on the block assignments (TimeOff, ChangeJob, Onboarding, Termination, Leave, Campaign), worker as above. Run As the forms ISU.
-2. **FormGate** as before, with formCode empty (the composed assignment is the event's only one) and noForm = pass where a request may have no blocks.
+2. **FormGate** as before, with formCode **COMPOSED** (Workday refuses an empty input; FormGate then matches the assignment whose parentKey is FORM:COMPOSED) and noForm = pass where a request may have no blocks.
 3. **Org map:** Governance > Departments (mark each department), then Org map > OK. Rebuild after each reorganization.
 4. **Settings:** Governance > Settings > OK (the defaults are the plan's: 12 / 10 / 8 slots, 250 workers, 12 months, 80% / 50% / 3 peers, retention 84 / 36 / 24 months, welcome 3 days before).
 5. **Blocks:** Form Studio > New form: owner organization (sets the tier), questions with classification, library key, reusable and validity; then Publish (governance tick for enterprise blocks, Restricted questions and department blocks over the threshold).
