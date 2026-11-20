@@ -48,9 +48,10 @@ write(os.path.join(PRES, 'cards', 'Steps.card'), {
 nav = [
     {"type": "item", "label": "Form Studio", "icon": "wd-icon-folder-close", "task": {"taskId": "FormStudio"}},
     {"type": "item", "label": "Results", "icon": "wd-icon-document", "task": {"taskId": "DynFormResults"}},
-    {"type": "item", "label": "My Forms to Fill", "icon": "wd-icon-checkboxes", "task": {"taskId": "DynMyForms"}},
 ]
-links = [("Fill a form", "DynFormLookup"), ("Design a form", "FormDesigner"), ("Copy, version or import", "DynFormCopy"),
+# My Forms is for employees (DynFill domain only): a hub item would render it inside this hub, which needs Use: Dynamic
+# Forms, so an employee's OK on the fill page landed on "not authorized" (live 2026-11-20, Testdyn). Links open outside.
+links = [("My forms to fill", "DynMyForms"), ("Fill a form", "DynFormLookup"), ("Design a form", "FormDesigner"), ("Copy, version or import", "DynFormCopy"),
          ("Seed test forms", "DynFormSeed"), ("Bulk test", "DynFormBulk")]
 write(os.path.join(PRES, 'Home.pmd'), {"id": "Home", "securityDomains": DOM, "presentation": {
     "pageType": "VIEW", "title": {"type": "title", "id": "pageTitle", "label": "Dynamic Forms"},

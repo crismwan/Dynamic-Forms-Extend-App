@@ -34,19 +34,18 @@
           "task": {
             "taskId": "DynFormResults"
           }
-        },
-        {
-          "type": "item",
-          "label": "My Forms to Fill",
-          "icon": "wd-icon-checkboxes",
-          "task": {
-            "taskId": "DynMyForms"
-          }
         }
       ],
       "additionalLinks": {
         "title": "More",
         "links": [
+          {
+            "type": "task",
+            "label": "My forms to fill",
+            "task": {
+              "taskId": "DynMyForms"
+            }
+          },
           {
             "type": "task",
             "label": "Fill a form",
