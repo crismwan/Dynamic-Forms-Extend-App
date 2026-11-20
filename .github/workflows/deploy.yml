@@ -17,9 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: "deploy = upload + deploy; create = register this app in App Hub once; bulk = bulk test, starts N time-off events and cancels them (tools/bulk_events.js)"
+        description: "deploy = upload + deploy; create = register this app in App Hub once; bulk = bulk test, starts N time-off events and cancels them (tools/bulk_events.js); migrate / migrate-dry = copy form definitions from the Extend Toolkit app (tools/migrate_forms.js)"
         type: choice
-        options: [deploy, create, bulk]
+        options: [deploy, create, bulk, migrate, migrate-dry]
         default: deploy
       app_dir:
         description: "create and deploy: the app folder"
@@ -282,5 +282,19 @@ jobs:
       - name: Start, check and clean up bulk events
         env:
           WD_TOKEN: ${{ secrets.WD_DEV_TOKEN }}
-          N: ${{ inputs.query || '50' }}
+          N: '50'
         run: node tools/bulk_events.js | tee /tmp/bulk.txt; { echo '```'; cat /tmp/bulk.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  migrate:
+    # One-off: copy form definitions (dynForms, dynQuestions) from the Extend Toolkit app into this app.
+    if: github.event_name == 'workflow_dispatch' && startsWith(inputs.action, 'migrate')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Copy form definitions
+        env:
+          WD_TOKEN: ${{ secrets.WD_DEV_TOKEN }}
+          DRY: ${{ inputs.action == 'migrate-dry' && '1' || '0' }}
+        run: set -o pipefail; node tools/migrate_forms.js 2>&1 | tee /tmp/m.txt; { echo '```'; cat /tmp/m.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
