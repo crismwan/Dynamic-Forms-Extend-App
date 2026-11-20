@@ -1021,6 +1021,318 @@
           }
         },
         {
+          "_type": "CreateValues",
+          "_value": {
+            "name": {
+              "_type": "Identifier",
+              "_value": "wkMsg"
+            },
+            "isDisabled": {
+              "_type": "Boolean",
+              "_value": false
+            },
+            "errorHandler": {
+              "_type": [
+                "Opt",
+                "ErrorHandler"
+              ],
+              "_value": null
+            },
+            "values": {
+              "_type": [
+                "List",
+                "Assignment"
+              ],
+              "_value": [
+                {
+                  "_type": "Assignment",
+                  "_value": {
+                    "param": {
+                      "_type": "Parameter",
+                      "_value": {
+                        "name": {
+                          "_type": "Identifier",
+                          "_value": "stamp"
+                        },
+                        "type": {
+                          "_type": "Type",
+                          "_value": "String"
+                        },
+                        "default": {
+                          "_type": [
+                            "Opt",
+                            "Any"
+                          ],
+                          "_value": null
+                        }
+                      }
+                    },
+                    "expr": {
+                      "_type": [
+                        "Expr",
+                        "String"
+                      ],
+                      "_value": {
+                        "type": {
+                          "_type": "Type",
+                          "_value": "String"
+                        },
+                        "source": {
+                          "_type": "String",
+                          "_value": "datetime.now(\"UTC\").format(\"yyyyMMddHHmmssSSS\")"
+                        },
+                        "isAuto": {
+                          "_type": "Boolean",
+                          "_value": false
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "_type": "Assignment",
+                  "_value": {
+                    "param": {
+                      "_type": "Parameter",
+                      "_value": {
+                        "name": {
+                          "_type": "Identifier",
+                          "_value": "code"
+                        },
+                        "type": {
+                          "_type": "Type",
+                          "_value": "String"
+                        },
+                        "default": {
+                          "_type": [
+                            "Opt",
+                            "Any"
+                          ],
+                          "_value": null
+                        }
+                      }
+                    },
+                    "expr": {
+                      "_type": [
+                        "Expr",
+                        "String"
+                      ],
+                      "_value": {
+                        "type": {
+                          "_type": "Type",
+                          "_value": "String"
+                        },
+                        "source": {
+                          "_type": "String",
+                          "_value": "data.getWorker.responseStatusCode.format(\"0\")"
+                        },
+                        "isAuto": {
+                          "_type": "Boolean",
+                          "_value": false
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "notes": {
+              "_type": [
+                "List",
+                "Note"
+              ],
+              "_value": []
+            }
+          }
+        },
+        {
+          "_type": "CreateTextTemplate",
+          "_value": {
+            "name": {
+              "_type": "Identifier",
+              "_value": "wkAlert"
+            },
+            "isDisabled": {
+              "_type": "Boolean",
+              "_value": false
+            },
+            "errorHandler": {
+              "_type": [
+                "Opt",
+                "ErrorHandler"
+              ],
+              "_value": null
+            },
+            "message": {
+              "_type": "TextTemplate",
+              "_value": "{\"responseKey\": \"TEST:DYN:ALERT{{data.wkMsg.stamp}}W\", \"formCode\": \"ALERT\", \"status\": \"Needs attention: FormCompose could not read the worker (HTTP {{data.wkMsg.code}}), so only enterprise blocks were used. Give the run-as account Get on worker data.\", \"nextForm\": \"\", \"parentKey\": \"\", \"bpEvent\": \"{{data.req.ev}}\", \"bpTarget\": \"{{data.req.who}}\"}"
+            },
+            "contentType": {
+              "_type": "String",
+              "_value": "application/json"
+            },
+            "formatRef": {
+              "_type": [
+                "Opt",
+                "TextFormatRef"
+              ],
+              "_value": null
+            },
+            "notes": {
+              "_type": [
+                "List",
+                "Note"
+              ],
+              "_value": []
+            }
+          }
+        },
+        {
+          "_type": "SendWorkdayApiRequest",
+          "_value": {
+            "name": {
+              "_type": "Identifier",
+              "_value": "wkFlag"
+            },
+            "isDisabled": {
+              "_type": "Boolean",
+              "_value": false
+            },
+            "errorHandler": {
+              "_type": [
+                "Opt",
+                "ErrorHandler"
+              ],
+              "_value": null
+            },
+            "body": {
+              "_type": [
+                "Opt",
+                "DataRefBody"
+              ],
+              "_value": {
+                "_type": "DataRefBody",
+                "_value": {
+                  "dataRef": {
+                    "_type": [
+                      "Expr",
+                      "Data"
+                    ],
+                    "_value": {
+                      "type": {
+                        "_type": "Type",
+                        "_value": "Data"
+                      },
+                      "source": {
+                        "_type": "String",
+                        "_value": "data(\"wkAlert\", \"message\")"
+                      },
+                      "isAuto": {
+                        "_type": "Boolean",
+                        "_value": false
+                      }
+                    }
+                  },
+                  "contentType": {
+                    "_type": [
+                      "Opt",
+                      "String"
+                    ],
+                    "_value": null
+                  }
+                }
+              }
+            },
+            "path": {
+              "_type": [
+                "Expr",
+                "String"
+              ],
+              "_value": {
+                "type": {
+                  "_type": "Type",
+                  "_value": "String"
+                },
+                "source": {
+                  "_type": "String",
+                  "_value": "(if (data.sw.org.isEmpty().not()) data.req.app.append(\"dynResponses/none/skip\") else data.req.app.append(\"dynResponses\"))"
+                },
+                "isAuto": {
+                  "_type": "Boolean",
+                  "_value": false
+                }
+              }
+            },
+            "queryParams": {
+              "_type": [
+                "List",
+                "QueryParam"
+              ],
+              "_value": []
+            },
+            "method": {
+              "_type": "HttpMethod",
+              "_value": "POST"
+            },
+            "headers": {
+              "_type": [
+                "List",
+                "Header"
+              ],
+              "_value": []
+            },
+            "auth": {
+              "_type": "AccessTokenFromInitiatingUser",
+              "_value": "AccessTokenFromInitiatingUser"
+            },
+            "isChunked": {
+              "_type": "Boolean",
+              "_value": false
+            },
+            "connectTimeoutMs": {
+              "_type": "Long",
+              "_value": 10000
+            },
+            "responseTimeoutMs": {
+              "_type": "Long",
+              "_value": 20000
+            },
+            "overallTimeoutMs": {
+              "_type": "Long",
+              "_value": 60000
+            },
+            "retryConfigRef": {
+              "_type": "RetryConfigRef",
+              "_value": "formRetry"
+            },
+            "tlsConfig": {
+              "_type": [
+                "Opt",
+                "TlsConfig"
+              ],
+              "_value": null
+            },
+            "proxyConfig": {
+              "_type": [
+                "Opt",
+                "ProxyConfig"
+              ],
+              "_value": null
+            },
+            "responseType": {
+              "_type": "HttpResponseType",
+              "_value": "Any"
+            },
+            "notes": {
+              "_type": [
+                "List",
+                "Note"
+              ],
+              "_value": []
+            }
+          }
+        },
+        {
           "_type": "SendWorkdayApiRequest",
           "_value": {
             "name": {

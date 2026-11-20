@@ -526,6 +526,15 @@ FORMCOMPOSE = [
     send("getEvent", "GET", 's"""${"/businessProcess/v1/events/"}${data.req.ev}"""', None),
     send("getWorker", "GET", '"/common/v1/workers/".append(data.req.who)', None),
     values("sw", [("org", "String", '(if (data.getWorker.responseStatusCode.is2xxStatusCode()) data.getWorker.response.asJSON().stringAtJsonPathWithDefault("$.primarySupervisoryOrganization.id", "") else "")')]),
+    # A worker read that fails (the run-as account can't see the worker) would quietly leave only enterprise blocks:
+    # record an ALERT and carry on (live 2026-11-20: empty subjectOrg, only the enterprise block composed).
+    values("wkMsg", [("stamp", "String", 'datetime.now("UTC").format("yyyyMMddHHmmssSSS")'),
+                     ("code", "String", 'data.getWorker.responseStatusCode.format("0")')]),
+    template("wkAlert", '{"responseKey": "TEST:DYN:ALERT{{data.wkMsg.stamp}}W", "formCode": "ALERT", '
+                        '"status": "Needs attention: FormCompose could not read the worker (HTTP {{data.wkMsg.code}}), so only enterprise blocks were used. Give the run-as account Get on worker data.", '
+                        '"nextForm": "", "parentKey": "", "bpEvent": "{{data.req.ev}}", "bpTarget": "{{data.req.who}}"}'),
+    send("wkFlag", "POST", '(if (data.sw.org.isEmpty().not()) data.req.app.append("dynResponses/none/skip") else data.req.app.append("dynResponses"))',
+         'data("wkAlert", "message")'),
     send("getMap", "GET", 'data.req.app.append("dynOrgMaps?limit=1&orgWid=").append((if (data.sw.org.isEmpty()) "none" else data.sw.org))', None),
     values("om", [("org", "String", 'data.sw.org'),
                   ("path", "String", 'data.getMap.response.asJSON().stringAtJsonPathWithDefault("$.data[0].path", "")'),
