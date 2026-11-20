@@ -303,10 +303,16 @@ var merge = function(own, cmp, parts, prior, w) {
   var seen = '|';
   var today = date:now().format('yyyyMMdd').toInt();
   var lists = (cmp ?? []).size() > 0 && !empty(cmp[0].blocks) ? parts : [own ?? []];
+  var hasB = (cmp ?? []).size() > 0 && !empty(cmp[0].blocks);
+  // walk the tiers in rank order (enterprise, department, team), whatever order the blocks were stored in, so the
+  // first copy of a shared library key kept is the higher tier's (live 2026-11-20: blocks stored team first kept the
+  // department's commute instead of the enterprise's)
+  for (var rr : (hasB ? [1, 2, 3] : [0])) {
   var n = 0;
   for (var p : lists) {
     n = n + 1;
-    var r = (cmp ?? []).size() > 0 && !empty(cmp[0].blocks) ? rank(cmp, n) : 0;
+    var r = hasB ? rank(cmp, n) : 0;
+    if (r == rr || (rr == 3 && r > 3)) {
     for (var x : sorted(p)) {
       var lib = '' + (x.libraryKey ?? '');
       if (empty(lib) || !seen.contains('|' + lib + '|')) {
@@ -328,6 +334,8 @@ var merge = function(own, cmp, parts, prior, w) {
         out.add(m);
       }
     }
+    }
+  }
   }
   out;
 };
