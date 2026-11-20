@@ -2,7 +2,9 @@
 
 Status of every item in "Dynamic Forms: tiered ownership plan" except the legal, UBC and partner-tenant gate (out of scope by request). **Built** = in the repo, static checks pass, deployed when noted. **Live** = tested in the dev tenant with fictitious data. Design: `TIERED-DESIGN.md`.
 
-Last update: 2026-11-20. Code pushed (commit "Tiered ownership, phases 1-5"); **not yet deployed**: the deploy tokens had expired. Tenant security for the new domains: approved by the user on 2026-11-20, not yet set up (the in-app browser disconnected).
+Last update: 2026-11-20 ~09:30 Pacific. **Deployed** (after renaming a reserved `type` value in FormCompose); all 25 app routes answer 200 on the server. Tenant security for the new domains: approved by the user on 2026-11-20, **not yet set up**. No live functional test of the new pages or FormCompose yet.
+
+**Handoff:** from 2026-11-20 the original working chat is for the Extend Toolkit only. Continue Dynamic Forms in a chat of its own, starting from this file and "Next" below.
 
 ## Phase 0
 
@@ -85,7 +87,7 @@ Last update: 2026-11-20. Code pushed (commit "Tiered ownership, phases 1-5"); **
 
 ## Next
 
-1. Deploy (refresh tokens).
+1. ~~Deploy~~ done 2026-11-20 (token refresh: README, "Refreshing tokens").
 2. Security setup (approved): Restricted group, new domains, ISU worker-data Get; activate.
 3. Org map: mark departments, rebuild; settings OK.
 4. Live tests: RETEST section 7.
