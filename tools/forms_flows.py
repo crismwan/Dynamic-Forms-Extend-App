@@ -574,7 +574,7 @@ FORMCOMPOSE = [
     send("getKits", "GET", 'data.req.app.append("dynKitItems?limit=100&processType=").append((if (data.kc.on) "Onboarding" else "none"))', None),
     values("kd", [("fresh", "Boolean", 'data.kc.on.and(data.getKitDone.responseStatusCode.is2xxStatusCode()).and(data.getKitDone.response.asJSON().numberAtJsonPath("$.total") < 1)')]),
     loop("kits", 'data.getKits.response.asJSON().iterator("$.data[*]")', [
-        values("k", [("type", "String", _KIT + '.stringAtJsonPathWithDefault("$.itemType", "")'),
+        values("k", [("itype", "String", _KIT + '.stringAtJsonPathWithDefault("$.itemType", "")'),
                      ("status", "String", _KIT + '.stringAtJsonPathWithDefault("$.status", "")'),
                      ("hit", "Boolean", _covers(_KIT) + '.and(data.k.status.equals("Published"))'),
                      ("code", "String", _clean(_KIT + '.stringAtJsonPathWithDefault("$.code", "")', 80)),
@@ -583,12 +583,12 @@ FORMCOMPOSE = [
                      ("tier", "String", _KIT + '.stringAtJsonPathWithDefault("$.tier", "")'),
                      # a customer copy (origin Customer, overrides = this code) replaces a delivered item for new hires
                      ("ov", "Boolean", 'data.getKits.response.toString().replace(" ", "").contains("\\"overrides\\":\\"".append(data.k.code).append("\\""))'),
-                     ("welcome", "Boolean", 'data.k.type.equals("welcome")'),
-                     ("learning", "Boolean", 'data.k.type.equals("welcome").not()')]),
-        template("kitOut", '{"key": "KIT:{{data.req.stamp}}:{{data.k.code}}", "taskType": "{{data.k.type}}", "hireWid": "{{data.req.who}}", "newHire": {"id": "{{data.req.who}}"}, '
+                     ("welcome", "Boolean", 'data.k.itype.equals("welcome")'),
+                     ("learning", "Boolean", 'data.k.itype.equals("welcome").not()')]),
+        template("kitOut", '{"key": "KIT:{{data.req.stamp}}:{{data.k.code}}", "taskType": "{{data.k.itype}}", "hireWid": "{{data.req.who}}", "newHire": {"id": "{{data.req.who}}"}, '
                            '"itemCode": "{{data.k.code}}", "title": "{{data.k.title}}", "status": "{{#if data.k.welcome}}scheduled{{/if}}{{#if data.k.learning}}open{{/if}}", '
                            '"bpEvent": "{{data.req.ev}}", "dueOffset": {{data.k.due}}, "tier": "{{data.k.tier}}", "source": "baseline", "orgWid": "{{data.om.org}}", "hirePerson": "{{data.pp.person}}"}'),
-    ], [("tasks", 'data.kitOut.message.asJSON()', 'data.k.hit.and(data.k.type.equals("access").not()).and(data.k.ov.not())')]),
+    ], [("tasks", 'data.kitOut.message.asJSON()', 'data.k.hit.and(data.k.itype.equals("access").not()).and(data.k.ov.not())')]),
     template("prepBody", '{"key": "KIT:{{data.req.stamp}}:PREPARE", "taskType": "prepare", "hireWid": "{{data.req.who}}", "newHire": {"id": "{{data.req.who}}"}, '
                          '"title": "Prepare for the new hire: personal note and access list", "status": "open", "bpEvent": "{{data.req.ev}}", "orgWid": "{{data.om.org}}", "source": "baseline", "hirePerson": "{{data.pp.person}}"}'),
     send("createPrep", "POST", '(if (data.kd.fresh) data.req.app.append("dynKitTasks") else data.req.app.append("dynKitTasks/none/skip"))', 'data("prepBody", "message")'),

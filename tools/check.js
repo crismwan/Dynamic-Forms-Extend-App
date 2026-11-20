@@ -118,6 +118,12 @@ for (const [f, s] of scripts.filter(([f]) => f.endsWith('.script'))) {
   const names = new Set(Object.values(orchestrations).map((o) => o._value.name._value));
   for (const f of Object.keys(json).filter((f) => f.endsWith('.pmd')))
     for (const m of JSON.stringify(json[f]).matchAll(/\/([A-Za-z0-9_]+)\/launch/g)) if (!names.has(m[1])) fail(f, `launches orchestration ${m[1]}, which is not in orchestration/`);
+  // App Hub build 2026-11-20: 'type' (and other reserved words) can't name a step or a value, and data.x.type fails
+  for (const [f, o] of Object.entries(orchestrations)) {
+    const t = JSON.stringify(o);
+    for (const m of t.matchAll(/"name":\{"_type":"Identifier","_value":"(type|data|context|item|start|end)"\}/g)) fail(f, `names a step or value '${m[1]}', a reserved orchestration word (App Hub build error)`);
+    if (/data\.[A-Za-z0-9_]+\.type\b/.test(t)) fail(f, "reads data.<step>.type: 'type' is reserved in the data shorthand (App Hub build error)");
+  }
   for (const [f, o] of Object.entries(orchestrations)) {
     const sd = o._value.securityDomains && o._value.securityDomains._value;
     const t = o._value.type._value;

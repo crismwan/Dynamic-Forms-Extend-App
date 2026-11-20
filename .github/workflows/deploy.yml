@@ -132,7 +132,7 @@ jobs:
                   print(f"{name}: could not read its expiry"); continue
               left = int(exp) - int(time.time())
               print(f"{name}: " + (f"expired {-left // 60} min ago" if left < 0 else f"valid for {left // 60} min"))
-              if left < 0: print("Refresh both tokens (CLAUDE.md: Deploy decision guide, route 1)."); sys.exit(1)
+              if left < 0: print("Refresh both tokens on crismwan/Dynamic-Forms-Extend-App (README: Refreshing tokens)."); sys.exit(1)
           PY
           mkdir -p "${HOME}/.config/@workday/wdcli"
           jq -n --arg acc "${WD_ACCOUNT}" --arg ten "${WD_TENANT}" --arg t "$T" --arg w "$W" \
@@ -252,7 +252,7 @@ jobs:
               left = int(exp) - int(time.time())
               print(f"{name}: " + (f"expired {-left // 60} min ago" if left < 0 else f"valid for {left // 60} min"))
               if left < 0:
-                  print("Refresh both tokens (README: Refreshing tokens), then run the workflow again."); sys.exit(1)
+                  print("Refresh both tokens on crismwan/Dynamic-Forms-Extend-App (README: Refreshing tokens), then run the workflow again."); sys.exit(1)
           PY
           # The upload signed in as the system user; the deploy needs the developer's tokens.
           CFG="${HOME}/.config/@workday/wdcli/config.json"

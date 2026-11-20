@@ -5609,7 +5609,7 @@
                                 },
                                 "source": {
                                   "_type": "String",
-                                  "_value": "data.k.hit.and(data.k.type.equals(\"access\").not()).and(data.k.ov.not())"
+                                  "_value": "data.k.hit.and(data.k.itype.equals(\"access\").not()).and(data.k.ov.not())"
                                 },
                                 "isAuto": {
                                   "_type": "Boolean",
@@ -5709,7 +5709,7 @@
                                   "_value": {
                                     "name": {
                                       "_type": "Identifier",
-                                      "_value": "type"
+                                      "_value": "itype"
                                     },
                                     "type": {
                                       "_type": "Type",
@@ -6096,7 +6096,7 @@
                                     },
                                     "source": {
                                       "_type": "String",
-                                      "_value": "data.k.type.equals(\"welcome\")"
+                                      "_value": "data.k.itype.equals(\"welcome\")"
                                     },
                                     "isAuto": {
                                       "_type": "Boolean",
@@ -6141,7 +6141,7 @@
                                     },
                                     "source": {
                                       "_type": "String",
-                                      "_value": "data.k.type.equals(\"welcome\").not()"
+                                      "_value": "data.k.itype.equals(\"welcome\").not()"
                                     },
                                     "isAuto": {
                                       "_type": "Boolean",
@@ -6182,7 +6182,7 @@
                         },
                         "message": {
                           "_type": "TextTemplate",
-                          "_value": "{\"key\": \"KIT:{{data.req.stamp}}:{{data.k.code}}\", \"taskType\": \"{{data.k.type}}\", \"hireWid\": \"{{data.req.who}}\", \"newHire\": {\"id\": \"{{data.req.who}}\"}, \"itemCode\": \"{{data.k.code}}\", \"title\": \"{{data.k.title}}\", \"status\": \"{{#if data.k.welcome}}scheduled{{/if}}{{#if data.k.learning}}open{{/if}}\", \"bpEvent\": \"{{data.req.ev}}\", \"dueOffset\": {{data.k.due}}, \"tier\": \"{{data.k.tier}}\", \"source\": \"baseline\", \"orgWid\": \"{{data.om.org}}\", \"hirePerson\": \"{{data.pp.person}}\"}"
+                          "_value": "{\"key\": \"KIT:{{data.req.stamp}}:{{data.k.code}}\", \"taskType\": \"{{data.k.itype}}\", \"hireWid\": \"{{data.req.who}}\", \"newHire\": {\"id\": \"{{data.req.who}}\"}, \"itemCode\": \"{{data.k.code}}\", \"title\": \"{{data.k.title}}\", \"status\": \"{{#if data.k.welcome}}scheduled{{/if}}{{#if data.k.learning}}open{{/if}}\", \"bpEvent\": \"{{data.req.ev}}\", \"dueOffset\": {{data.k.due}}, \"tier\": \"{{data.k.tier}}\", \"source\": \"baseline\", \"orgWid\": \"{{data.om.org}}\", \"hirePerson\": \"{{data.pp.person}}\"}"
                         },
                         "contentType": {
                           "_type": "String",
