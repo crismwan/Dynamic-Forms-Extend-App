@@ -97,4 +97,8 @@ Last update: 2026-11-20 ~09:30 Pacific. **Deployed** (after renaming a reserved 
    - 7.6 **pass:** an 11-question department block (TEST:DYN:BIGD, owner Operations) was refused at publish with both approvals ticked: "This Department block takes 11 slots; the Department budget is 10."
    - 7.14 partial pass: Block assignments' Reach column updates as owner and scope change (Customer Support - Canada org only: 1 orgs, 12 workers; Executive Management Group + subordinates: 17 orgs, 53 workers). Applying two levels down needs 7.5 working.
    - 7.15 **pass** (Block assignments): Executive Management Group as a Team owner with Org + subordinates gave "A team block can only reach orgs in one department: this scope reaches 2." (edit cancelled, not saved).
-   - Remaining: 7.1-7.4, 7.7-7.13, 7.16-7.24.
+   - **After the security change (activated ~10:53):** FormCompose still gets HTTP 403 on `common/v1/workers/{id}` as TEST_LAB_SUB_ISU (two new requests for Dylan, each with an ALERT "could not read the worker (HTTP 403)"); the domain grant is being rechecked. The new ALERT works.
+   - 7.9 partial pass: both new requests reused the same composed form (compose key TimeOff|1:TEST:DYN:ENTB), one assignment each.
+   - 7.10 **pass:** the fill page shows "Check: Job title" first, prefilled from the signed-in user's record (Chief Human Resources Officer when filled by Logan).
+   - 7.11 **pass:** after commute 30 was saved on one of Dylan's requests, his other request showed it prefilled with "(from your earlier answer, kept until 2027-11-20; change it if it is no longer right)". Reuse is keyed on the request's subject (bpTarget), not on whoever fills it.
+   - Remaining: 7.1-7.5, 7.7, 7.8, 7.12, 7.13, 7.16-7.24.
