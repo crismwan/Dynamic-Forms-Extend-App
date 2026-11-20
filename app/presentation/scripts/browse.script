@@ -223,7 +223,7 @@ var rootFor = function(key, positions) {
 
 var dsQuery = function(q, appOnly) {
   var s = ('' + (q ?? '')).replace('\'', '').replace('\\', '').trim();
-  (appOnly == true) ? 'developertoolkitappv1_kwswrv ' + s : s;
+  (appOnly == true) ? 'dynamicforms_kwswrv ' + s : s;
 };
 
 var dsItems = function(res, useId) {
@@ -236,7 +236,7 @@ var dsRoot = function() {
 
 var dsLevelQuery = function(sel) {
   var s = sel ?? [];
-  s.size() > 1 ? s[1].substringAfter('w:') : ((s.size() > 0 && s[0] == 'app') ? 'developertoolkitappv1_kwswrv' : 'developertoolkitappv1_kwswrv');
+  s.size() > 1 ? s[1].substringAfter('w:') : ((s.size() > 0 && s[0] == 'app') ? 'dynamicforms_kwswrv' : 'dynamicforms_kwswrv');
 };
 
 var dsNoCall = function(sel) {

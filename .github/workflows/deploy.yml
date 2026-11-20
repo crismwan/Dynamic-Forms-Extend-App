@@ -167,7 +167,7 @@ jobs:
           #   python3 tools/set_app.py <referenceId> <appId>   and push.
           wdcli app copy "${APP_DIR}" /tmp/created -n "${{ inputs.app_name || 'dynamicforms' }}" --app-type EXTEND -a "${WD_ACCOUNT}" --ci -f json 2>&1 | tee /tmp/create.txt
           code=${PIPESTATUS[0]}
-          REF=$(jq -r '.referenceId // empty' /tmp/created/appManifest.json 2>/dev/null)
+          REF=$(jq -r '.referenceId // empty' /tmp/created/*/appManifest.json 2>/dev/null)
           # The copied manifest's "id" is the new app's VERSION id; the app id comes from wdcli app info (2026-11-14).
           ID=""
           [ -n "${REF}" ] && ID=$(wdcli app info "${REF}" --ci -f json 2>/dev/null | jq -r '.appId // empty')

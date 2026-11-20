@@ -602,7 +602,7 @@ var qWid = function(qs, a) {
 var resQ = function(form, kind) {
   var f = ('' + (form ?? '')).replace('\'', '').replace('\\', '');
   var cols = kind == 'answers' ? 'responseKey, formCode, qKey, textValue, secretText, numberValue, dateValue, refDescriptor, organization, position, worker' : 'workdayID, responseKey, formCode, status, subject, parentKey, nextForm, bpEvent, bpTarget';
-  var src = kind == 'answers' ? 'developertoolkitappv1_kwswrv_dynAnswers' : 'developertoolkitappv1_kwswrv_dynResponses';
+  var src = kind == 'answers' ? 'dynamicforms_kwswrv_dynAnswers' : 'dynamicforms_kwswrv_dynResponses';
   // responses: all of them, so a follow-up filled from another form still marks its parent done; answers: only the
   // form's own when a form is picked (a page reading every answer took 17-19 s once there were ~450 responses).
   'SELECT ' + cols + ' FROM ' + src + ' ORDER BY responseKey DESC';
@@ -613,7 +613,7 @@ var resQ = function(form, kind) {
 var ansQ = function(keys) {
   var ks = (keys ?? []).map(k => { '"' + ('' + (k ?? '')).replace('"', '').replace('\\', '') + '"' });
   var w = ks.size() == 0 ? ' WHERE responseKey = "-"' : (ks.size() <= 50 ? (' WHERE responseKey in (' + ks.join(', ') + ')') : '');
-  'SELECT responseKey, formCode, qKey, textValue, secretText, numberValue, dateValue, refDescriptor, organization, position, worker FROM developertoolkitappv1_kwswrv_dynAnswers' + w + ' ORDER BY responseKey DESC';
+  'SELECT responseKey, formCode, qKey, textValue, secretText, numberValue, dateValue, refDescriptor, organization, position, worker FROM dynamicforms_kwswrv_dynAnswers' + w + ' ORDER BY responseKey DESC';
 };
 
 {

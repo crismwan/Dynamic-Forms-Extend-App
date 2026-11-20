@@ -65,7 +65,7 @@ var fieldList = function(res) {
 
 var dsQuery = function(q, appOnly) {
   var s = ('' + (q ?? '')).replace('\'', '').replace('\\', '').trim();
-  (appOnly == true) ? 'developertoolkitappv1_kwswrv ' + s : s;
+  (appOnly == true) ? 'dynamicforms_kwswrv ' + s : s;
 };
 
 var dsPick = function(res, useId) {

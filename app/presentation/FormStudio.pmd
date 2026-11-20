@@ -25,13 +25,13 @@
       "name": "qCounts",
       "baseUrlType": "workday-wql",
       "authType": "sso",
-      "url": "<% 'data?limit=1000&query=' + string:pathEncode('SELECT formCode, COUNT(workdayID) FROM developertoolkitappv1_kwswrv_dynQuestions GROUP BY formCode') %>"
+      "url": "<% 'data?limit=1000&query=' + string:pathEncode('SELECT formCode, COUNT(workdayID) FROM dynamicforms_kwswrv_dynQuestions GROUP BY formCode') %>"
     },
     {
       "name": "rCounts",
       "baseUrlType": "workday-wql",
       "authType": "sso",
-      "url": "<% 'data?limit=1000&query=' + string:pathEncode('SELECT formCode, COUNT(workdayID) FROM developertoolkitappv1_kwswrv_dynResponses GROUP BY formCode') %>"
+      "url": "<% 'data?limit=1000&query=' + string:pathEncode('SELECT formCode, COUNT(workdayID) FROM dynamicforms_kwswrv_dynResponses GROUP BY formCode') %>"
     }
   ],
   "presentation": {
