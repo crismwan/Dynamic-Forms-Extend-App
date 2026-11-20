@@ -101,4 +101,8 @@ Last update: 2026-11-20 ~09:30 Pacific. **Deployed** (after renaming a reserved 
    - 7.9 partial pass: both new requests reused the same composed form (compose key TimeOff|1:TEST:DYN:ENTB), one assignment each.
    - 7.10 **pass:** the fill page shows "Check: Job title" first, prefilled from the signed-in user's record (Chief Human Resources Officer when filled by Logan).
    - 7.11 **pass:** after commute 30 was saved on one of Dylan's requests, his other request showed it prefilled with "(from your earlier answer, kept until 2027-11-20; change it if it is no longer right)". Reuse is keyed on the request's subject (bpTarget), not on whoever fills it.
-   - Remaining: 7.1-7.5, 7.7, 7.8, 7.12, 7.13, 7.16-7.24.
+   - **Worker read fixed (~12:51):** the ISU needed **Report/Task View** on Worker Data: Public Worker Reports (Integration Get alone gave S22 permission denied; REST calls by an ISU check Report/Task permissions).
+   - 7.5 **pass:** Dylan Johnson's request (…fe20e248af330000) got subjectOrg Customer Support - Canada, department Operations, pinned `3:TEST:DYN:TEAM,2:TEST:DYN:DEPT,1:TEST:DYN:ENTB`, a new composed form TEST:DYN:CMP:20261120195224213, one assignment. The fill page lists the three blocks' questions (the last slot draws only after scrolling).
+   - 7.8 **pass after a fix:** commute (library key in both the enterprise and the department block) is asked once; the fill pages used to dedup in FormCompose's storage order (team first) and kept the department copy. Now merged in tier order: Job title, Commute (enterprise), Overtime, Shift (department), Support queue (team).
+   - 7.14 partial: the team block applies to a worker in its own org; two levels down not yet tried.
+   - Remaining: 7.1-7.4, 7.7, 7.12, 7.13, 7.14 (subordinates), 7.16-7.24.
