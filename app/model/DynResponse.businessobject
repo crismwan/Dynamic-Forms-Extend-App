@@ -93,6 +93,36 @@
       "name": "bpPerson",
       "label": "Business Process Person",
       "type": "TEXT"
+    },
+    {
+      "id": 14,
+      "name": "subjectOrg",
+      "label": "Subject Organization",
+      "type": "TEXT"
+    },
+    {
+      "id": 15,
+      "name": "department",
+      "label": "Department",
+      "type": "TEXT"
+    },
+    {
+      "id": 16,
+      "name": "company",
+      "label": "Company",
+      "type": "TEXT"
+    },
+    {
+      "id": 17,
+      "name": "pinned",
+      "label": "Pinned Block Versions",
+      "type": "TEXT"
+    },
+    {
+      "id": 18,
+      "name": "processType",
+      "label": "Process Type",
+      "type": "TEXT"
     }
   ]
 }

@@ -1,0 +1,7 @@
+{
+  "id": 4,
+  "name": "DynRestricted",
+  "label": "Dyn Forms Responses Restricted",
+  "enabledForPageSecurity": true,
+  "enabledForOrchestrationSecurity": false
+}

@@ -1,0 +1,188 @@
+{
+  "id": "FormMyAnswers",
+  "securityDomains": [
+    "DynFill",
+    "UseDynamicForms"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "pme",
+      "baseUrlType": "workday-api",
+      "url": "person/v4/people/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mew",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "url": "<% 'data?limit=5&query=' + string:pathEncode('SELECT worker FROM allWorkers WHERE person in (' + (empty(pme.id) ? 'x' : pme.id) + ')') %>"
+    },
+    {
+      "name": "mine",
+      "baseUrlType": "app",
+      "authType": "isuAuth",
+      "url": "<% 'dynAnswers?limit=100&subjectWid=' + ((mew.data ?? []).size() > 0 && !empty(mew.data[0].worker) ? ('' + mew.data[0].worker.id) : '').urlEncode() %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "exclude": "<% empty(((mew.data ?? []).size() > 0 && !empty(mew.data[0].worker) ? ('' + mew.data[0].worker.id) : '')) %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "clearA",
+        "baseUrlType": "app",
+        "url": "<% 'dynAnswers/' + mIdText.value %>",
+        "httpMethod": "PATCH",
+        "authType": "isuAuth",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% clearCheckBox.value != true %>",
+        "onSend": "<% self.data = {:}; self.data.validUntil = date:now().minusDays(1).format('yyyy-MM-dd'); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormMyAnswers_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormMyAnswers_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormMyAnswers_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "myGrid",
+          "label": "<% presentationLabels.FormMyAnswers_myGrid_label %>",
+          "rowVariableName": "mr",
+          "rows": "<% tier.myAnswers(mine.data ?? []) %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "render": "<% tier.myAnswers(mine.data ?? []).size() > 0 %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "idColumn",
+              "label": "<% presentationLabels.FormMyAnswers_idColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "mIdText",
+                "enabled": false,
+                "value": "<% mr.id ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "formColumn",
+              "label": "<% presentationLabels.FormMyAnswers_formColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "formText",
+                "enabled": false,
+                "value": "<% mr.formCode ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "keyColumn",
+              "label": "<% presentationLabels.FormMyAnswers_keyColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "keyText",
+                "enabled": false,
+                "value": "<% mr.qKey ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "valueColumn",
+              "label": "<% presentationLabels.FormMyAnswers_valueColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "valueText",
+                "enabled": false,
+                "value": "<% mr.textValue ?? ('' + (mr.numberValue ?? '')) %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "untilColumn",
+              "label": "<% presentationLabels.FormMyAnswers_untilColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "untilText",
+                "enabled": false,
+                "value": "<% ('' + (mr.validUntil ?? '')).truncate(10) %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "clearColumn",
+              "label": "<% presentationLabels.FormMyAnswers_clearColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "clearCheckBox",
+                "value": "<% false %>"
+              }
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "noneFieldSet",
+          "title": "<% presentationLabels.FormMyAnswers_noneFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "noneText",
+              "label": "<% presentationLabels.FormMyAnswers_noneText_label %>",
+              "enabled": false,
+              "value": "<% tier.myAnswers(mine.data ?? []).size() == 0 ? 'No reusable answers are kept for you.' : 'See the grid.' %>"
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "DynMyForms"
+    }
+  }
+}

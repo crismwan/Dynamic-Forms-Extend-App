@@ -312,7 +312,7 @@ FORMGATE = [
     # Route: one record per worker (responseKey TEST:DYN:ROUTE:<worker WID>, subject = the worker), read by the Worker-based
     # calculated fields. Upsert without a branch: the POST goes to an invalid address when the record exists, the PATCH
     # when it doesn't; both refusals are harmless.
-    values("rt", [("rkey", "String", '"TEST:DYN:ROUTE:".append(data.req.target)')]),
+    values("rt", [("rkey", "String", '"TEST:DYN:ROUTE:".append(data.req.ev)')]),
     send("getRoute", "GET", 'data.req.app.append("dynResponses?responseKey=").append(data.rt.rkey.urlEncode())', None),
     values("rr", [("rid", "String", 'data.getRoute.response.asJSON().stringAtJsonPathWithDefault("$.data[0].id", "")'),
                   ("status", "String", '(if (data.gate.hr) "Route: HR" else "Route: normal")')]),
@@ -471,8 +471,8 @@ def loop(name, iterator, group_nodes, folds):
     """A Loop over a Json iterator; folds = [(name, json_expr)] (shapes from Workday's samples: employeeRelations
     intGeneratePDFandAttachments, capitalProjectPlanning RequestApproval)."""
     J = ["Json", S(["Opt", "JsonSchemaRef"], None)]
-    fv = [S("JsonFoldValue", {"nameProp": S("Identifier", fn), "data": S(["Expr", J], {"type": S("Type", J), "source": S("String", src), "isAuto": S("Boolean", False)}),
-                              "condition": S(["Opt", ["Expr", "Boolean"]], None)}) for fn, src in folds]
+    fv = [S("JsonFoldValue", {"nameProp": S("Identifier", f[0]), "data": S(["Expr", J], {"type": S("Type", J), "source": S("String", f[1]), "isAuto": S("Boolean", False)}),
+                              "condition": S(["Opt", ["Expr", "Boolean"]], expr("Boolean", f[2]) if len(f) > 2 else None)}) for f in folds]
     return node("Loop", name,
                 inputData=S(["Expr", ["Iterator", ["Opt", "Any"]]], {"type": S("Type", ["Iterator", J]), "source": S("String", iterator), "isAuto": S("Boolean", False)}),
                 filter=S(["Opt", ["Expr", "Boolean"]], None),
@@ -481,6 +481,123 @@ def loop(name, iterator, group_nodes, folds):
                 earlyStopCondition=S(["Opt", "EarlyStopCondition"], None), sorts=S(["List", "SortedBy"], []), locale=S(["Opt", "Locale"], None),
                 group=S("ImplicitGroup", {"name": S("Identifier", "_group_" + name), "isDisabled": S("Boolean", False),
                                           "errorHandler": S(["Opt", "ErrorHandler"], None), "nodes": S(["List", "Node"], group_nodes), "notes": NOTES}))
+
+
+# FormCompose (2026-11-20, tiered ownership plan, replaces FormAssign on processes set up with blocks): a Service step
+# launches it with actionEvent, processType and (for organization-targeted processes) worker. It
+#   1. finds the subject's supervisory organization (common/v1/workers) and its row on the org map (Dyn Org Map:
+#      path "|top|...|org|", department, company);
+#   2. reads the block assignments for the process type (Dyn Assign) and keeps those whose owner org covers the
+#      subject: scope "org" = the owner org itself, "subs" = the owner org or any org below it (its WID on the path);
+#      with no org map row only enterprise assignments apply;
+#   3. pins each matching block family's published version and lists them "tierRank:code" (1 enterprise,
+#      2 department, 3 team);
+#   4. reuses the composed form with the same compose key (process + pinned blocks) or creates it (Dyn Form kind
+#      composed), so the fill page reads one record and the blocks' questions;
+#   5. creates (or, when the process was sent back, reopens) one assignment for the event, with the subject's org,
+#      department, company and the pinned versions recorded;
+#   6. on Onboarding, also composes the onboarding kit: one welcome task, the manager's prepare task and a task per
+#      learning step whose kit item covers the hire (same owner org + scope rule). Access items wait for the manager.
+# Every write checks for an existing record of this event first, so a second run changes nothing.
+_ITEM = 'data.asgs.item'
+_KIT = 'data.kits.item'
+
+
+def _covers(item):
+    g = lambda k: item + '.stringAtJsonPathWithDefault("$.%s", "")' % k
+    return ('(if (%s.equals("false")) false else (if (data.om.path.isEmpty()) %s.equals("Enterprise") else '
+            '(if (%s.equals("subs")) data.om.path.contains("|".append(%s).append("|")) else %s.equals(data.om.org))))'
+            % (item + '.stringAtJsonPathWithDefault("$.active", "true")', g("tier"), g("scope"), g("ownerWid"), g("ownerWid")))
+
+
+FORMCOMPOSE = [
+    values("req", [
+        ("ev", "String", 'data.start.actionEvent'),
+        ("app", "String", _APP),
+        ("pt", "String", 'data.start.processType.trim().replace("\'", "").replace("\\"", "").replace("|", "")'),
+        ("target", "String", 'bp.eventTarget().getIDValues("WID").get(0)'),
+        ("who", "String", '(if (data.start.worker.trim().isEmpty()) data.req.target else data.start.worker.trim())'),
+        ("stamp", "String", 'datetime.now("UTC").format("yyyyMMddHHmmssSSS")'),
+        ("key", "String", '"TEST:DYN:BP" + data.req.stamp + "E" + data.req.ev.substring(16, 28)')]),
+    send("getExisting", "GET", 'data.req.app.append("dynResponses?limit=100&bpEvent=").append(data.req.ev)', None),
+    values("ex", [("eid", "String", 'data.getExisting.response.asJSON().stringAtJsonPathWithDefault("$.data[?(@.formCode == \'BP\' && @.parentKey == \'FORM:COMPOSED\')].id", "")')]),
+    send("getEvent", "GET", 's"""${"/businessProcess/v1/events/"}${data.req.ev}"""', None),
+    send("getWorker", "GET", '"/common/v1/workers/".append(data.req.who)', None),
+    values("sw", [("org", "String", '(if (data.getWorker.responseStatusCode.is2xxStatusCode()) data.getWorker.response.asJSON().stringAtJsonPathWithDefault("$.primarySupervisoryOrganization.id", "") else "")')]),
+    send("getMap", "GET", 'data.req.app.append("dynOrgMaps?limit=1&orgWid=").append((if (data.sw.org.isEmpty()) "none" else data.sw.org))', None),
+    values("om", [("org", "String", 'data.sw.org'),
+                  ("path", "String", 'data.getMap.response.asJSON().stringAtJsonPathWithDefault("$.data[0].path", "")'),
+                  ("dept", "String", _clean('data.getMap.response.asJSON().stringAtJsonPathWithDefault("$.data[0].deptName", "")', 120)),
+                  ("company", "String", _clean('data.getMap.response.asJSON().stringAtJsonPathWithDefault("$.data[0].companyName", "")', 120)),
+                  ("orgName", "String", _clean('data.getMap.response.asJSON().stringAtJsonPathWithDefault("$.data[0].name", "")', 120))]),
+    send("getAssigns", "GET", 'data.req.app.append("dynAssigns?limit=100&processType=").append(data.req.pt.urlEncode())', None),
+    *alerted_check("readsOk", 'data.getExisting.responseStatusCode.is2xxStatusCode().and(data.getAssigns.responseStatusCode.is2xxStatusCode())',
+                   '"Could not read the assignments or block assignments (" + data.getExisting.responseStatusCode.format("0") + "/" + data.getAssigns.responseStatusCode.format("0") + "): nothing was composed"', "FormCompose"),
+    loop("asgs", 'data.getAssigns.response.asJSON().iterator("$.data[*]")', [
+        values("a", [("fam", "String", _ITEM + '.stringAtJsonPathWithDefault("$.family", "")'),
+                     ("tier", "String", _ITEM + '.stringAtJsonPathWithDefault("$.tier", "Team")'),
+                     ("hit", "Boolean", _covers(_ITEM) + '.and(data.a.fam.isEmpty().not())'),
+                     ("rank", "String", '(if (data.a.tier.equals("Enterprise")) "1" else (if (data.a.tier.equals("Department")) "2" else "3"))')]),
+        send("getFam", "GET", 'data.req.app.append("dynForms?limit=100&family=").append((if (data.a.hit) data.a.fam.urlEncode() else "none"))', None),
+        values("ap", [("pinned", "String", '(if (data.a.hit.and(data.getFam.responseStatusCode.is2xxStatusCode())) ' + _pinned('data.getFam', '""') + ' else "")'),
+                      ("keep", "Boolean", 'data.a.hit.and(data.ap.pinned.isEmpty().not())')]),
+        template("blockOut", '{"c": "{{data.a.rank}}:{{data.ap.pinned}}"}'),
+    ], [("blocks", 'data.blockOut.message.asJSON()', 'data.ap.keep')]),
+    values("bl", [("t", "String", 'data.asgs.blocks.toString().replace(" ", "")'),
+                  ("list", "String", 'data.bl.t.replace("[", "").replace("]", "").replace("{\\"c\\":\\"", "").replace("\\"}", "")'),
+                  ("any", "Boolean", 'data.bl.list.isEmpty().not()'),
+                  ("ckey", "String", 'data.req.pt.append("|").append(data.bl.list)')]),
+    *alerted_check("someBlock", 'data.bl.any', '"No published block applies to this request (process " + data.req.pt + ", organization " + data.om.orgName + "): nothing was assigned"', "FormCompose"),
+    send("getCached", "GET", 'data.req.app.append("dynForms?limit=1&composeKey=").append(data.bl.ckey.urlEncode())', None),
+    values("cc", [("found", "String", 'data.getCached.response.asJSON().stringAtJsonPathWithDefault("$.data[0].code", "")'),
+                  ("code", "String", '(if (data.cc.found.isEmpty()) "TEST:DYN:CMP:".append(data.req.stamp) else data.cc.found)')]),
+    template("cmpBody", '{"code": "{{data.cc.code}}", "family": "{{data.cc.code}}", "formName": "Composed form: {{data.req.pt}}", "version": 1, '
+                        '"status": "Published", "kind": "composed", "blocks": "{{data.bl.list}}", "composeKey": "{{data.bl.ckey}}", "processType": "{{data.req.pt}}"}'),
+    send("createCmp", "POST", '(if (data.cc.found.isEmpty()) data.req.app.append("dynForms") else data.req.app.append("dynForms/none/skip"))', 'data("cmpBody", "message")'),
+    *alerted_check("cmpOk", 'data.cc.found.isEmpty().not().or(data.createCmp.responseStatusCode.is2xxStatusCode())',
+                   '"Workday refused the composed form: " + data.createCmp.response.toString().truncate(300)', "FormCompose"),
+    values("evInfo", [("desc", "String", '(if (data.getEvent.responseStatusCode.is2xxStatusCode()) ' + _clean(
+        'data.getEvent.response.asJSON().stringAtJsonPathWithDefault("$.descriptor", "Business process")', 120) + ' else "Business process")')]),
+    send("getPerson", "GET", '"/wql/v1/data?limit=1&query=".append(("SELECT person FROM allWorkers WHERE workdayID = \\"" + data.req.who.replace("\\"", "") + "\\"").urlEncode())', None),
+    values("pp", [("person", "String", '(if (data.getPerson.responseStatusCode.is2xxStatusCode()) data.getPerson.response.asJSON().stringAtJsonPathWithDefault("$.data[0].person.id", "") else "")')]),
+    template("assignBody", '{"responseKey": "{{data.req.key}}", "formCode": "BP", "status": "Assigned: {{data.evInfo.desc}}", "nextForm": "{{data.cc.code}}", '
+                           '"parentKey": "FORM:COMPOSED", "bpEvent": "{{data.req.ev}}", "bpTarget": "{{data.req.who}}", "bpPerson": "{{data.pp.person}}", '
+                           '"subjectOrg": "{{data.om.org}}", "department": "{{data.om.dept}}", "company": "{{data.om.company}}", "pinned": "{{data.bl.list}}", '
+                           '"processType": "{{data.req.pt}}", "orgName": "{{data.om.orgName}}", "alsoExpected": "-"}'),
+    send("createAssignment", "POST", '(if (data.ex.eid.isEmpty()) data.req.app.append("dynResponses") else data.req.app.append("dynResponses/none/skip"))', 'data("assignBody", "message")'),
+    send("reopenAssignment", "PATCH", '(if (data.ex.eid.isEmpty()) data.req.app.append("dynResponses/none") else data.req.app.append("dynResponses/").append(data.ex.eid))', 'data("assignBody", "message")'),
+    *alerted_check("assignSaved", 'data.createAssignment.responseStatusCode.is2xxStatusCode().or(data.reopenAssignment.responseStatusCode.is2xxStatusCode())',
+                   '"Workday refused the composed form assignment: " + data.createAssignment.response.toString().truncate(300)', "FormCompose"),
+    # ---- onboarding kit (phase 5) ----
+    values("kc", [("on", "Boolean", 'data.req.pt.equals("Onboarding")')]),
+    send("getKitDone", "GET", 'data.req.app.append("dynKitTasks?limit=1&bpEvent=").append((if (data.kc.on) data.req.ev else "none"))', None),
+    send("getKits", "GET", 'data.req.app.append("dynKitItems?limit=100&processType=").append((if (data.kc.on) "Onboarding" else "none"))', None),
+    values("kd", [("fresh", "Boolean", 'data.kc.on.and(data.getKitDone.responseStatusCode.is2xxStatusCode()).and(data.getKitDone.response.asJSON().numberAtJsonPath("$.total") < 1)')]),
+    loop("kits", 'data.getKits.response.asJSON().iterator("$.data[*]")', [
+        values("k", [("type", "String", _KIT + '.stringAtJsonPathWithDefault("$.itemType", "")'),
+                     ("status", "String", _KIT + '.stringAtJsonPathWithDefault("$.status", "")'),
+                     ("hit", "Boolean", _covers(_KIT) + '.and(data.k.status.equals("Published"))'),
+                     ("code", "String", _clean(_KIT + '.stringAtJsonPathWithDefault("$.code", "")', 80)),
+                     ("title", "String", _clean(_KIT + '.stringAtJsonPathWithDefault("$.title", "")', 200)),
+                     ("due", "String", _KIT + '.stringAtJsonPathWithDefault("$.dueOffset", "0").substringBefore(".")'),
+                     ("tier", "String", _KIT + '.stringAtJsonPathWithDefault("$.tier", "")'),
+                     # a customer copy (origin Customer, overrides = this code) replaces a delivered item for new hires
+                     ("ov", "Boolean", 'data.getKits.response.toString().replace(" ", "").contains("\\"overrides\\":\\"".append(data.k.code).append("\\""))'),
+                     ("welcome", "Boolean", 'data.k.type.equals("welcome")'),
+                     ("learning", "Boolean", 'data.k.type.equals("welcome").not()')]),
+        template("kitOut", '{"key": "KIT:{{data.req.stamp}}:{{data.k.code}}", "taskType": "{{data.k.type}}", "hireWid": "{{data.req.who}}", "newHire": {"id": "{{data.req.who}}"}, '
+                           '"itemCode": "{{data.k.code}}", "title": "{{data.k.title}}", "status": "{{#if data.k.welcome}}scheduled{{/if}}{{#if data.k.learning}}open{{/if}}", '
+                           '"bpEvent": "{{data.req.ev}}", "dueOffset": {{data.k.due}}, "tier": "{{data.k.tier}}", "source": "baseline", "orgWid": "{{data.om.org}}", "hirePerson": "{{data.pp.person}}"}'),
+    ], [("tasks", 'data.kitOut.message.asJSON()', 'data.k.hit.and(data.k.type.equals("access").not()).and(data.k.ov.not())')]),
+    template("prepBody", '{"key": "KIT:{{data.req.stamp}}:PREPARE", "taskType": "prepare", "hireWid": "{{data.req.who}}", "newHire": {"id": "{{data.req.who}}"}, '
+                         '"title": "Prepare for the new hire: personal note and access list", "status": "open", "bpEvent": "{{data.req.ev}}", "orgWid": "{{data.om.org}}", "source": "baseline", "hirePerson": "{{data.pp.person}}"}'),
+    send("createPrep", "POST", '(if (data.kd.fresh) data.req.app.append("dynKitTasks") else data.req.app.append("dynKitTasks/none/skip"))', 'data("prepBody", "message")'),
+    values("kb", [("t", "String", 'data.kits.tasks.toString()'), ("any", "Boolean", 'data.kd.fresh.and(data.kb.t.length() > 2)')]),
+    template("kitBulk", '{"data": {{data.kits.tasks}}}'),
+    send("createKit", "POST", '(if (data.kb.any) data.req.app.append("dynKitTasks?bulk=true") else data.req.app.append("dynKitTasks/none/skip"))', 'data("kitBulk", "message")'),
+    *alerted_check("kitSaved", '(if (data.kd.fresh) data.createPrep.responseStatusCode.is2xxStatusCode().and((if (data.kb.any) data.createKit.responseStatusCode.is2xxStatusCode() else true)) else true)',
+                   '"Workday refused the onboarding kit tasks: " + data.createPrep.response.toString().truncate(150) + " " + data.createKit.response.toString().truncate(150)', "FormCompose"),
+]
 
 
 # FormReconcile (2026-11-19, after acceptance item 9): the safety net behind FormAssign, run on a schedule from an
@@ -620,7 +737,21 @@ PRUNE.append(values("out", [(k, "String", '(if (data.req.' + k + '.isEmpty()) "s
 PRUNE.append(template("answer", '{"forms": "{{data.out.forms}}", "q1": "{{data.out.q1}}", "q2": "{{data.out.q2}}", "q3": "{{data.out.q3}}"}'))
 
 
+# AnswerPurge (2026-11-20, retention): Body {"g": "<id>,...", "c": "...", "r": "..."} from the FormPurge page: the
+# General, Confidential and Restricted answers past their retention (up to 100 each). Deleted in bulk; an empty list
+# deletes nothing.
+PURGE = [values("req", [("app", "String", _APP)] + [(k, "String", _ids(k)) for k in ("g", "c", "r")]),
+         values("bodies", [(k, "String", _bulk_body(k)) for k in ("g", "c", "r")])]
+for k, coll in (("g", "dynAnswers"), ("c", "dynAnswerConfs"), ("r", "dynAnswerRestrs")):
+    PURGE.append(template(k + "Body", "{{data.bodies." + k + "}}"))
+    PURGE.append(send("del_" + k, "DELETE", '(if (data.req.' + k + '.isEmpty()) data.req.app.append("' + coll + '/none") else data.req.app.append("' + coll + '?bulk=true"))',
+                      'data("' + k + 'Body", "message")'))
+PURGE.append(values("out", [(k, "String", '(if (data.req.' + k + '.isEmpty()) "skipped" else data.del_' + k + '.responseStatusCode.format("0"))') for k in ("g", "c", "r")]))
+PURGE.append(template("answer", '{"general": "{{data.out.g}}", "confidential": "{{data.out.c}}", "restricted": "{{data.out.r}}"}'))
+
+
 def write_forms(write, ORCH, DOM):
+    write(os.path.join(ORCH, 'AnswerPurge.orchestration'), flow("AnswerPurge", PURGE, 'data("answer", "message")', DOM))
     os.makedirs(ORCH, exist_ok=True)
     write(os.path.join(ORCH, 'FormPrune.orchestration'), flow("FormPrune", PRUNE, 'data("answer", "message")', DOM))
     write(os.path.join(ORCH, 'DynClose.orchestration'), flow("DynClose", DYNCLOSE, 'data("answer", "message")', DOM))
@@ -631,6 +762,8 @@ def write_forms(write, ORCH, DOM):
     _retrying(rf["_value"]["nodes"])
     write(os.path.join(ORCH, 'FormReconcile.orchestration'), rf)
     write(os.path.join(ORCH, 'FormEnded.orchestration'), bp_flow("FormEnded", FORMENDED, [_param("actionEvent")]))
+    write(os.path.join(ORCH, 'FormCompose.orchestration'), bp_flow("FormCompose", FORMCOMPOSE, [
+        _param("actionEvent"), _param("processType", 's"""TimeOff"""'), _param("worker", '""')]))
     write(os.path.join(ORCH, 'FormGate.orchestration'), bp_flow("FormGate", FORMGATE, [
         _param("actionEvent"), _param("worker", '""'), _param("formCode", '""'), _param("noForm", 's"""cancel"""'),
         _param("onFail", 's"""cancel"""'), _param("resultsUrl", '""')]))

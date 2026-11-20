@@ -1,0 +1,10 @@
+{
+  "id": 16,
+  "name": "KitGuide",
+  "label": "My Learning Guide",
+  "securityDomains": [
+    "DynFill",
+    "UseDynamicForms"
+  ],
+  "routePath": "/kitGuide"
+}

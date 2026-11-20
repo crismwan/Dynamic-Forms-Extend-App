@@ -1,0 +1,94 @@
+{
+  "id": 12,
+  "name": "DynSettings",
+  "label": "Dyn Settings",
+  "defaultSecurityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "defaultCollection": {
+    "name": "dynSettings",
+    "label": "All Dyn Settingss"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "settingKey",
+      "label": "Key",
+      "type": "TEXT",
+      "useForDisplay": true
+    },
+    {
+      "id": 2,
+      "name": "budgetEnterprise",
+      "label": "Enterprise Slots",
+      "type": "INTEGER"
+    },
+    {
+      "id": 3,
+      "name": "budgetDepartment",
+      "label": "Department Slots",
+      "type": "INTEGER"
+    },
+    {
+      "id": 4,
+      "name": "budgetTeam",
+      "label": "Team Slots",
+      "type": "INTEGER"
+    },
+    {
+      "id": 5,
+      "name": "reachThreshold",
+      "label": "Reach Threshold",
+      "type": "INTEGER"
+    },
+    {
+      "id": 6,
+      "name": "defaultValidMonths",
+      "label": "Default Validity Months",
+      "type": "INTEGER"
+    },
+    {
+      "id": 7,
+      "name": "recommendPct",
+      "label": "Recommend at Percent",
+      "type": "INTEGER"
+    },
+    {
+      "id": 8,
+      "name": "commonPct",
+      "label": "Common at Percent",
+      "type": "INTEGER"
+    },
+    {
+      "id": 9,
+      "name": "minPeers",
+      "label": "Minimum Peers",
+      "type": "INTEGER"
+    },
+    {
+      "id": 10,
+      "name": "retainGeneral",
+      "label": "Keep General Answers Months",
+      "type": "INTEGER"
+    },
+    {
+      "id": 11,
+      "name": "retainConfidential",
+      "label": "Keep Confidential Answers Months",
+      "type": "INTEGER"
+    },
+    {
+      "id": 12,
+      "name": "retainRestricted",
+      "label": "Keep Restricted Answers Months",
+      "type": "INTEGER"
+    },
+    {
+      "id": 13,
+      "name": "welcomeDaysBefore",
+      "label": "Welcome Days Before Start",
+      "type": "INTEGER"
+    }
+  ]
+}

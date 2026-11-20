@@ -1,0 +1,172 @@
+{
+  "id": "FormSettings",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "settings",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynSettings?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postS",
+        "baseUrlType": "app",
+        "url": "dynSettings",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% !empty(tier.first(settings.data ?? []).id) %>",
+        "onSend": "<% var b = {:}; b.put('settingKey', 'DEFAULT'); b.put('budgetEnterprise', budgetEnterpriseNumber.getValue() ?? 12); b.put('budgetDepartment', budgetDepartmentNumber.getValue() ?? 10); b.put('budgetTeam', budgetTeamNumber.getValue() ?? 8); b.put('reachThreshold', reachThresholdNumber.getValue() ?? 250); b.put('defaultValidMonths', defaultValidMonthsNumber.getValue() ?? 12); b.put('recommendPct', recommendPctNumber.getValue() ?? 80); b.put('commonPct', commonPctNumber.getValue() ?? 50); b.put('minPeers', minPeersNumber.getValue() ?? 3); b.put('retainGeneral', retainGeneralNumber.getValue() ?? 84); b.put('retainConfidential', retainConfidentialNumber.getValue() ?? 36); b.put('retainRestricted', retainRestrictedNumber.getValue() ?? 24); b.put('welcomeDaysBefore', welcomeDaysBeforeNumber.getValue() ?? 3); b; %>"
+      },
+      {
+        "name": "patchS",
+        "baseUrlType": "app",
+        "url": "<% 'dynSettings/' + (tier.first(settings.data ?? []).id ?? 'none') %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(tier.first(settings.data ?? []).id) %>",
+        "onSend": "<% var b = {:}; b.put('settingKey', 'DEFAULT'); b.put('budgetEnterprise', budgetEnterpriseNumber.getValue() ?? 12); b.put('budgetDepartment', budgetDepartmentNumber.getValue() ?? 10); b.put('budgetTeam', budgetTeamNumber.getValue() ?? 8); b.put('reachThreshold', reachThresholdNumber.getValue() ?? 250); b.put('defaultValidMonths', defaultValidMonthsNumber.getValue() ?? 12); b.put('recommendPct', recommendPctNumber.getValue() ?? 80); b.put('commonPct', commonPctNumber.getValue() ?? 50); b.put('minPeers', minPeersNumber.getValue() ?? 3); b.put('retainGeneral', retainGeneralNumber.getValue() ?? 84); b.put('retainConfidential', retainConfidentialNumber.getValue() ?? 36); b.put('retainRestricted', retainRestrictedNumber.getValue() ?? 24); b.put('welcomeDaysBefore', welcomeDaysBeforeNumber.getValue() ?? 3); b; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormSettings_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormSettings_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormSettings_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "settingsFieldSet",
+          "title": "<% presentationLabels.FormSettings_settingsFieldSet_title %>",
+          "children": [
+            {
+              "type": "number",
+              "id": "budgetEnterpriseNumber",
+              "label": "<% presentationLabels.FormSettings_budgetEnterpriseNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'budgetEnterprise', 12) %>"
+            },
+            {
+              "type": "number",
+              "id": "budgetDepartmentNumber",
+              "label": "<% presentationLabels.FormSettings_budgetDepartmentNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'budgetDepartment', 10) %>"
+            },
+            {
+              "type": "number",
+              "id": "budgetTeamNumber",
+              "label": "<% presentationLabels.FormSettings_budgetTeamNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'budgetTeam', 8) %>"
+            },
+            {
+              "type": "number",
+              "id": "reachThresholdNumber",
+              "label": "<% presentationLabels.FormSettings_reachThresholdNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'reachThreshold', 250) %>"
+            },
+            {
+              "type": "number",
+              "id": "defaultValidMonthsNumber",
+              "label": "<% presentationLabels.FormSettings_defaultValidMonthsNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'defaultValidMonths', 12) %>"
+            },
+            {
+              "type": "number",
+              "id": "recommendPctNumber",
+              "label": "<% presentationLabels.FormSettings_recommendPctNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'recommendPct', 80) %>"
+            },
+            {
+              "type": "number",
+              "id": "commonPctNumber",
+              "label": "<% presentationLabels.FormSettings_commonPctNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'commonPct', 50) %>"
+            },
+            {
+              "type": "number",
+              "id": "minPeersNumber",
+              "label": "<% presentationLabels.FormSettings_minPeersNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'minPeers', 3) %>"
+            },
+            {
+              "type": "number",
+              "id": "retainGeneralNumber",
+              "label": "<% presentationLabels.FormSettings_retainGeneralNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'retainGeneral', 84) %>"
+            },
+            {
+              "type": "number",
+              "id": "retainConfidentialNumber",
+              "label": "<% presentationLabels.FormSettings_retainConfidentialNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'retainConfidential', 36) %>"
+            },
+            {
+              "type": "number",
+              "id": "retainRestrictedNumber",
+              "label": "<% presentationLabels.FormSettings_retainRestrictedNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'retainRestricted', 24) %>"
+            },
+            {
+              "type": "number",
+              "id": "welcomeDaysBeforeNumber",
+              "label": "<% presentationLabels.FormSettings_welcomeDaysBeforeNumber_label %>",
+              "value": "<% tier.setting(settings.data ?? [], 'welcomeDaysBefore', 3) %>"
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormGovern"
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "id": "KitWelcome",
+  "securityDomains": [
+    "DynFill",
+    "UseDynamicForms"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "pme",
+      "baseUrlType": "workday-api",
+      "url": "person/v4/people/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mew",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "url": "<% 'data?limit=5&query=' + string:pathEncode('SELECT worker FROM allWorkers WHERE person in (' + (empty(pme.id) ? 'x' : pme.id) + ')') %>"
+    },
+    {
+      "name": "mytasks",
+      "baseUrlType": "app",
+      "authType": "isuAuth",
+      "url": "<% 'dynKitTasks?limit=100&hireWid=' + (empty(queryParams.hire) ? ((mew.data ?? []).size() > 0 && !empty(mew.data[0].worker) ? ('' + mew.data[0].worker.id) : '') : queryParams.hire).urlEncode() %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "exclude": "<% empty(queryParams.hire) && empty(((mew.data ?? []).size() > 0 && !empty(mew.data[0].worker) ? ('' + mew.data[0].worker.id) : '')) %>"
+    },
+    {
+      "name": "items",
+      "baseUrlType": "app",
+      "authType": "isuAuth",
+      "url": "dynKitItems?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    }
+  ],
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.KitWelcome_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "welcomeFieldSet",
+          "title": "<% presentationLabels.KitWelcome_welcomeFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "welcomeRichText",
+              "value": "<% '<span style=\"color:#374151;font-size:14px\">' + tier.welcomeText(items.data ?? [], (mytasks.data ?? []), []) + '</span>' %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "stepsFieldSet",
+          "title": "<% presentationLabels.KitWelcome_stepsFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "stepsText",
+              "label": "<% presentationLabels.KitWelcome_stepsText_label %>",
+              "enabled": false,
+              "value": "<% '' + tier.kitByType((mytasks.data ?? []), 'learning').size() + ' steps; open your learning guide to tick them off' %>"
+            },
+            {
+              "type": "button",
+              "id": "guideButton",
+              "label": "<% presentationLabels.KitWelcome_guideButton_label %>",
+              "action": "PRIMARY",
+              "taskReference": {
+                "taskId": "KitGuide"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -34,6 +34,38 @@
           "task": {
             "taskId": "DynFormResults"
           }
+        },
+        {
+          "type": "item",
+          "label": "Governance",
+          "icon": "wd-icon-star",
+          "task": {
+            "taskId": "FormGovern"
+          }
+        },
+        {
+          "type": "item",
+          "label": "Owner dashboard",
+          "icon": "wd-icon-document",
+          "task": {
+            "taskId": "FormOwnerDash"
+          }
+        },
+        {
+          "type": "item",
+          "label": "Question library",
+          "icon": "wd-icon-document",
+          "task": {
+            "taskId": "FormLibrary"
+          }
+        },
+        {
+          "type": "item",
+          "label": "Setup and readiness",
+          "icon": "wd-icon-document",
+          "task": {
+            "taskId": "FormReadiness"
+          }
         }
       ],
       "additionalLinks": {
@@ -79,6 +111,27 @@
             "label": "Bulk test",
             "task": {
               "taskId": "DynFormBulk"
+            }
+          },
+          {
+            "type": "task",
+            "label": "Block assignments",
+            "task": {
+              "taskId": "FormAssignments"
+            }
+          },
+          {
+            "type": "task",
+            "label": "Kit designer",
+            "task": {
+              "taskId": "KitDesigner"
+            }
+          },
+          {
+            "type": "task",
+            "label": "Fulfilment queue",
+            "task": {
+              "taskId": "KitQueue"
             }
           }
         ]

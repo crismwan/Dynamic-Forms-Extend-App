@@ -29,6 +29,20 @@
       "authType": "sso",
       "deferred": true,
       "url": "<% 'dataSources?limit=100&searchString=' + string:pathEncode(q) %>"
+    },
+    {
+      "name": "omap",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "dynOrgMaps?limit=100"
     }
   ],
   "outboundData": {
@@ -69,7 +83,7 @@
       }
     ]
   },
-  "script": "<%\n  var formBody = function() {\n    var b = {:};\n    b.put('code', codeText.getValue());\n    b.put('formName', nameText.getValue());\n    b.put('description', descriptionTextArea.getValue() ?? '');\n    b.put('status', fs.pickOne(statusInstanceList.getValue()));\n    b.put('version', versionNumber.getValue() ?? 1);\n    b.put('dataSources', fs.dsJoin(dataSourcesInstanceList.getValue()));\n    b.put('targetObject', fs.pickOne(targetInstanceList.getValue()));\n    b.put('requestFramework', requestCheckBox.getValue() ?? false);\n    b.put('requestType', requestTypeText.getValue() ?? '');\n    b.put('businessProcess', fs.pickOne(processInstanceList.getValue()));\n    b;\n  };\n%>",
+  "script": "<%\n  var formBody = function() {\n    var b = {:};\n    b.put('code', codeText.getValue());\n    b.put('formName', nameText.getValue());\n    b.put('description', descriptionTextArea.getValue() ?? '');\n    b.put('status', fs.pickOne(statusInstanceList.getValue()));\n    b.put('version', versionNumber.getValue() ?? 1);\n    b.put('dataSources', fs.dsJoin(dataSourcesInstanceList.getValue()));\n    b.put('targetObject', fs.pickOne(targetInstanceList.getValue()));\n    b.put('requestFramework', requestCheckBox.getValue() ?? false);\n    b.put('requestType', requestTypeText.getValue() ?? '');\n    b.put('businessProcess', fs.pickOne(processInstanceList.getValue()));\n    if (!empty(ownerInstanceList.getValue())) { b.put('ownerOrg', { 'id': ownerInstanceList.getValue()[0] }); b.put('tier', fs.tierIn(omap.data ?? [], ownerInstanceList.getValue()[0])); }\n    b.put('retentionMonths', retentionNumber.getValue() ?? 84);\n    if (empty(fs.first(formRec.data ?? []).id)) { b.put('origin', 'Customer'); }\n    b;\n  };\n%>",
   "presentation": {
     "pageType": "EDIT",
     "title": {
@@ -168,6 +182,32 @@
               "id": "versionNumber",
               "label": "<% presentationLabels.FormDesigner_versionNumber_label %>",
               "value": "<% fs.first(formRec.data ?? []).version ?? 1 %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "ownerFieldSet",
+          "title": "<% presentationLabels.FormDesigner_ownerFieldSet_title %>",
+          "children": [
+            {
+              "type": "instanceList",
+              "id": "ownerInstanceList",
+              "label": "<% presentationLabels.FormDesigner_ownerInstanceList_label %>",
+              "values": "<% (omap.data ?? []).filter(r => { r.active != false }).map(r => { { 'id': r.orgWid, 'descriptor': (r.name ?? '') + ' (' + (r.tier ?? '') + ')' } }) %>",
+              "selectedValuesAndDescriptors": "<% empty(fs.first(formRec.data ?? []).ownerOrg) ? [] : [{'id': fs.first(formRec.data ?? []).ownerOrg.id, 'descriptor': fs.first(formRec.data ?? []).ownerOrg.descriptor ?? ''}] %>"
+            },
+            {
+              "type": "number",
+              "id": "retentionNumber",
+              "label": "<% presentationLabels.FormDesigner_retentionNumber_label %>",
+              "value": "<% fs.first(formRec.data ?? []).retentionMonths ?? 84 %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "ownerHelpReadOnlyText",
+              "label": "<% presentationLabels.FormDesigner_ownerHelpReadOnlyText_label %>",
+              "value": "<% 'Attach this block to a process in Block assignments (Governance), with an owner organization and scope. Publish each version from Form Studio.' %>"
             }
           ]
         },

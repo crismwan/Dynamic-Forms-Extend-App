@@ -1,0 +1,259 @@
+{
+  "id": "FormGovern",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "settings",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynSettings?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "forms",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynForms?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "script": "<%\n  var blocks = function() {\n    (forms.data ?? []).filter(f => { (f.kind ?? '') != 'composed' && (f.status ?? '') == 'Published' });\n  };\n  var byTier = function(t) {\n    blocks().filter(f => { (empty(f.ownerOrg) ? (f.tier ?? 'Team') : tier.tierOf(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), f.ownerOrg.id)) == t }).size();\n  };\n%>",
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormGovern_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormGovern_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormGovern_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "tierFieldSet",
+          "title": "<% presentationLabels.FormGovern_tierFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "enterpriseText",
+              "label": "<% presentationLabels.FormGovern_enterpriseText_label %>",
+              "enabled": false,
+              "value": "<% '' + byTier('Enterprise') + ' published; budget ' + tier.budget(settings.data ?? [], 'Enterprise') + ' slots' %>"
+            },
+            {
+              "type": "text",
+              "id": "departmentText",
+              "label": "<% presentationLabels.FormGovern_departmentText_label %>",
+              "enabled": false,
+              "value": "<% '' + byTier('Department') + ' published; budget ' + tier.budget(settings.data ?? [], 'Department') + ' slots' %>"
+            },
+            {
+              "type": "text",
+              "id": "teamText",
+              "label": "<% presentationLabels.FormGovern_teamText_label %>",
+              "enabled": false,
+              "value": "<% '' + byTier('Team') + ' published; budget ' + tier.budget(settings.data ?? [], 'Team') + ' slots' %>"
+            },
+            {
+              "type": "text",
+              "id": "mapText",
+              "label": "<% presentationLabels.FormGovern_mapText_label %>",
+              "enabled": false,
+              "value": "<% '' + (list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []])).size() + ' organizations, ' + (list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []])).filter(r => { (r.tier ?? '') == 'Department' }).size() + ' departments' %>"
+            },
+            {
+              "type": "text",
+              "id": "domainsText",
+              "label": "<% presentationLabels.FormGovern_domainsText_label %>",
+              "enabled": false,
+              "value": "<% '8 of 10 in use: Fill, Author, Govern, Org view, Confidential, Restricted, Integration, Fulfil; 2 kept spare' %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "toolsFieldSet",
+          "title": "<% presentationLabels.FormGovern_toolsFieldSet_title %>",
+          "children": [
+            {
+              "type": "button",
+              "id": "assignButton",
+              "label": "<% presentationLabels.FormGovern_assignButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormAssignments"
+              }
+            },
+            {
+              "type": "button",
+              "id": "deptButton",
+              "label": "<% presentationLabels.FormGovern_deptButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormDepartments"
+              }
+            },
+            {
+              "type": "button",
+              "id": "mapButton",
+              "label": "<% presentationLabels.FormGovern_mapButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormOrgMap"
+              }
+            },
+            {
+              "type": "button",
+              "id": "settingsButton",
+              "label": "<% presentationLabels.FormGovern_settingsButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormSettings"
+              }
+            },
+            {
+              "type": "button",
+              "id": "readyButton",
+              "label": "<% presentationLabels.FormGovern_readyButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormReadiness"
+              }
+            },
+            {
+              "type": "button",
+              "id": "libButton",
+              "label": "<% presentationLabels.FormGovern_libButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormLibrary"
+              }
+            },
+            {
+              "type": "button",
+              "id": "dashButton",
+              "label": "<% presentationLabels.FormGovern_dashButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormOwnerDash"
+              }
+            },
+            {
+              "type": "button",
+              "id": "purgeButton",
+              "label": "<% presentationLabels.FormGovern_purgeButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormPurge"
+              }
+            },
+            {
+              "type": "button",
+              "id": "kitButton",
+              "label": "<% presentationLabels.FormGovern_kitButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "KitDesigner"
+              }
+            },
+            {
+              "type": "button",
+              "id": "queueButton",
+              "label": "<% presentationLabels.FormGovern_queueButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "KitQueue"
+              }
+            },
+            {
+              "type": "button",
+              "id": "pkgButton",
+              "label": "<% presentationLabels.FormGovern_pkgButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "KitPackages"
+              }
+            },
+            {
+              "type": "button",
+              "id": "peersButton",
+              "label": "<% presentationLabels.FormGovern_peersButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "KitPeers"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

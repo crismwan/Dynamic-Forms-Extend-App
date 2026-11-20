@@ -1,0 +1,129 @@
+{
+  "id": "FormPurge",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "settings",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynSettings?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "oldG",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "url": "<% 'data?limit=100&query=' + string:pathEncode('SELECT workdayID FROM dynamicforms_kwswrv_dynAnswers WHERE answeredOn < \"' + date:now().minusMonths(tier.setting(settings.data ?? [], 'retainGeneral', 84)).format('yyyy-MM-dd') + '\"') %>"
+    },
+    {
+      "name": "oldC",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "url": "<% 'data?limit=100&query=' + string:pathEncode('SELECT workdayID FROM dynamicforms_kwswrv_dynAnswerConfs WHERE answeredOn < \"' + date:now().minusMonths(tier.setting(settings.data ?? [], 'retainConfidential', 36)).format('yyyy-MM-dd') + '\"') %>"
+    },
+    {
+      "name": "oldR",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "url": "<% 'data?limit=100&query=' + string:pathEncode('SELECT workdayID FROM dynamicforms_kwswrv_dynAnswerRestrs WHERE answeredOn < \"' + date:now().minusMonths(tier.setting(settings.data ?? [], 'retainRestricted', 24)).format('yyyy-MM-dd') + '\"') %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "purge",
+        "baseUrlType": "orchestrate",
+        "url": "/AnswerPurge/launch",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% confirmCheckBox.value != true %>",
+        "onSend": "<% self.data = {:}; self.data.g = (oldG.data ?? []).map(x => { '' + x.workdayID }).join(','); self.data.c = (oldC.data ?? []).map(x => { '' + x.workdayID }).join(','); self.data.r = (oldR.data ?? []).map(x => { '' + x.workdayID }).join(','); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormPurge_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormPurge_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormPurge_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "purgeFieldSet",
+          "title": "<% presentationLabels.FormPurge_purgeFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "gText",
+              "label": "<% presentationLabels.FormPurge_gText_label %>",
+              "enabled": false,
+              "value": "<% '' + (oldG.data ?? []).size() + ' older than ' + date:now().minusMonths(tier.setting(settings.data ?? [], 'retainGeneral', 84)).format('yyyy-MM-dd') %>"
+            },
+            {
+              "type": "text",
+              "id": "cText",
+              "label": "<% presentationLabels.FormPurge_cText_label %>",
+              "enabled": false,
+              "value": "<% '' + (oldC.data ?? []).size() + ' older than ' + date:now().minusMonths(tier.setting(settings.data ?? [], 'retainConfidential', 36)).format('yyyy-MM-dd') %>"
+            },
+            {
+              "type": "text",
+              "id": "rText",
+              "label": "<% presentationLabels.FormPurge_rText_label %>",
+              "enabled": false,
+              "value": "<% '' + (oldR.data ?? []).size() + ' older than ' + date:now().minusMonths(tier.setting(settings.data ?? [], 'retainRestricted', 24)).format('yyyy-MM-dd') %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "confirmCheckBox",
+              "label": "<% presentationLabels.FormPurge_confirmCheckBox_label %>",
+              "required": true,
+              "value": "<% false %>"
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormGovern"
+    }
+  }
+}

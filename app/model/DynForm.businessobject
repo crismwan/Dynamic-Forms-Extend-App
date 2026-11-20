@@ -102,6 +102,111 @@
       "name": "alsoAssign",
       "label": "Also Assign Forms",
       "type": "TEXT"
+    },
+    {
+      "id": 16,
+      "name": "ownerOrg",
+      "label": "Owner Organization",
+      "type": "SINGLE_INSTANCE",
+      "target": "SUPERVISORY_ORGANIZATION"
+    },
+    {
+      "id": 17,
+      "name": "tier",
+      "label": "Tier",
+      "type": "TEXT"
+    },
+    {
+      "id": 18,
+      "name": "processType",
+      "label": "Process Type",
+      "type": "TEXT"
+    },
+    {
+      "id": 19,
+      "name": "ownerStatus",
+      "label": "Owner Status",
+      "type": "TEXT"
+    },
+    {
+      "id": 20,
+      "name": "blocks",
+      "label": "Composed Blocks",
+      "type": "TEXT"
+    },
+    {
+      "id": 21,
+      "name": "composeKey",
+      "label": "Compose Key",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 22,
+      "name": "slotCount",
+      "label": "Slot Count",
+      "type": "INTEGER"
+    },
+    {
+      "id": 23,
+      "name": "approvedBy",
+      "label": "Approved By",
+      "type": "TEXT"
+    },
+    {
+      "id": 24,
+      "name": "approvedTier",
+      "label": "Approved Tier",
+      "type": "TEXT"
+    },
+    {
+      "id": 25,
+      "name": "reachAtApproval",
+      "label": "Reach at Approval",
+      "type": "INTEGER"
+    },
+    {
+      "id": 26,
+      "name": "privacyReason",
+      "label": "Privacy Reason",
+      "type": "TEXT"
+    },
+    {
+      "id": 27,
+      "name": "retentionMonths",
+      "label": "Retention Months",
+      "type": "INTEGER"
+    },
+    {
+      "id": 28,
+      "name": "origin",
+      "label": "Origin",
+      "type": "TEXT"
+    },
+    {
+      "id": 29,
+      "name": "overrides",
+      "label": "Overrides",
+      "type": "TEXT"
+    },
+    {
+      "id": 30,
+      "name": "approvedOn",
+      "label": "Approved On",
+      "type": "DATE",
+      "precision": "DAY"
+    },
+    {
+      "id": 31,
+      "name": "kind",
+      "label": "Kind",
+      "type": "TEXT"
+    },
+    {
+      "id": 32,
+      "name": "packageCode",
+      "label": "Package",
+      "type": "TEXT"
     }
   ]
 }

@@ -1,0 +1,7 @@
+{
+  "id": 6,
+  "name": "DynGovern",
+  "label": "Dyn Forms Govern",
+  "enabledForPageSecurity": true,
+  "enabledForOrchestrationSecurity": true
+}

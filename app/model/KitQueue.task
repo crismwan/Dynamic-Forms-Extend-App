@@ -1,0 +1,10 @@
+{
+  "id": 17,
+  "name": "KitQueue",
+  "label": "Onboarding Fulfilment Queue",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynFulfil"
+  ],
+  "routePath": "/kitQueue"
+}

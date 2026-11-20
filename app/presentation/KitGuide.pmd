@@ -1,0 +1,177 @@
+{
+  "id": "KitGuide",
+  "securityDomains": [
+    "DynFill",
+    "UseDynamicForms"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "pme",
+      "baseUrlType": "workday-api",
+      "url": "person/v4/people/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mew",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "url": "<% 'data?limit=5&query=' + string:pathEncode('SELECT worker FROM allWorkers WHERE person in (' + (empty(pme.id) ? 'x' : pme.id) + ')') %>"
+    },
+    {
+      "name": "mytasks",
+      "baseUrlType": "app",
+      "authType": "isuAuth",
+      "url": "<% 'dynKitTasks?limit=100&hireWid=' + (empty(queryParams.hire) ? ((mew.data ?? []).size() > 0 && !empty(mew.data[0].worker) ? ('' + mew.data[0].worker.id) : '') : queryParams.hire).urlEncode() %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "exclude": "<% empty(queryParams.hire) && empty(((mew.data ?? []).size() > 0 && !empty(mew.data[0].worker) ? ('' + mew.data[0].worker.id) : '')) %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "tick",
+        "baseUrlType": "app",
+        "url": "<% 'dynKitTasks/' + gIdText.value %>",
+        "httpMethod": "PATCH",
+        "authType": "isuAuth",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% doneCheckBox.value != true %>",
+        "onSend": "<% self.data = {:}; self.data.status = 'done'; self.data.doneOn = date:now().format('yyyy-MM-dd'); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.KitGuide_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.KitGuide_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.KitGuide_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "guideGrid",
+          "label": "<% presentationLabels.KitGuide_guideGrid_label %>",
+          "rowVariableName": "gr",
+          "rows": "<% list:sort(tier.kitByType(mytasks.data ?? [], 'learning'), 'dueOffset', true) %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "render": "<% tier.kitByType(mytasks.data ?? [], 'learning').size() > 0 %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "idColumn",
+              "label": "<% presentationLabels.KitGuide_idColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "gIdText",
+                "enabled": false,
+                "value": "<% gr.id ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "titleColumn",
+              "label": "<% presentationLabels.KitGuide_titleColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "titleText",
+                "enabled": false,
+                "value": "<% gr.title ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "dueColumn",
+              "label": "<% presentationLabels.KitGuide_dueColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "dueText",
+                "enabled": false,
+                "value": "<% '' + (gr.dueOffset ?? 0) %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "statusColumn",
+              "label": "<% presentationLabels.KitGuide_statusColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "statusText",
+                "enabled": false,
+                "value": "<% gr.status ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "doneColumn",
+              "label": "<% presentationLabels.KitGuide_doneColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "doneCheckBox",
+                "value": "<% (gr.status ?? '') == 'done' %>"
+              }
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "noneFieldSet",
+          "title": "<% presentationLabels.KitGuide_noneFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "noneText",
+              "label": "<% presentationLabels.KitGuide_noneText_label %>",
+              "enabled": false,
+              "value": "<% tier.kitByType(mytasks.data ?? [], 'learning').size() == 0 ? 'No learning steps yet.' : ('' + tier.kitByType(mytasks.data ?? [], 'learning').filter(x => { (x.status ?? '') == 'done' }).size() + ' of ' + tier.kitByType(mytasks.data ?? [], 'learning').size() + ' done') %>"
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "DynMyForms"
+    }
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "id": "FormReadiness",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "defs",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=2000&query=' + string:pathEncode('SELECT businessProcessDefinition, businessProcessType, businessProcessSteps FROM businessProcessDefinitions') %>"
+    },
+    {
+      "name": "depts",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynDepts?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "settings",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynSettings?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormReadiness_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormReadiness_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormReadiness_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "defsGrid",
+          "label": "<% presentationLabels.FormReadiness_defsGrid_label %>",
+          "rowVariableName": "rr",
+          "rows": "<% tier.readyRows(defs.data ?? []) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "procColumn",
+              "label": "<% presentationLabels.FormReadiness_procColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "procText",
+                "enabled": false,
+                "value": "<% rr.process ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "defColumn",
+              "label": "<% presentationLabels.FormReadiness_defColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "defText",
+                "enabled": false,
+                "value": "<% rr.definition ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "levelColumn",
+              "label": "<% presentationLabels.FormReadiness_levelColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "levelText",
+                "enabled": false,
+                "value": "<% rr.level ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "checksColumn",
+              "label": "<% presentationLabels.FormReadiness_checksColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "checksText",
+                "enabled": false,
+                "value": "<% rr.checks ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "fixColumn",
+              "label": "<% presentationLabels.FormReadiness_fixColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "fixText",
+                "enabled": false,
+                "value": "<% rr.fix ?? '' %>"
+              }
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "checksGrid",
+          "label": "<% presentationLabels.FormReadiness_checksGrid_label %>",
+          "rowVariableName": "cr",
+          "rows": "<% tier.mapChecks(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), depts.data ?? [], settings.data ?? []) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "itemColumn",
+              "label": "<% presentationLabels.FormReadiness_itemColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "itemText",
+                "enabled": false,
+                "value": "<% cr.item ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "resultColumn",
+              "label": "<% presentationLabels.FormReadiness_resultColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "resultText",
+                "enabled": false,
+                "value": "<% cr.result ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "detailColumn",
+              "label": "<% presentationLabels.FormReadiness_detailColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "detailText",
+                "enabled": false,
+                "value": "<% cr.detail ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "cfixColumn",
+              "label": "<% presentationLabels.FormReadiness_cfixColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "cfixText",
+                "enabled": false,
+                "value": "<% cr.fix ?? '' %>"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

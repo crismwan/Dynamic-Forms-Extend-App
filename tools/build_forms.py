@@ -66,7 +66,27 @@ write(os.path.join(MODEL, 'DynForm.businessobject'), bo(3, "DynForm", "Dyn Form"
     field(14, "failPolicy", "Gate Policy When Check Fails", "TEXT"),
     # several forms on one process (2026-11-19): up to two more form families, comma separated, that FormAssign assigns
     # with this one; FormGate requires each of them to be filled too
-    field(15, "alsoAssign", "Also Assign Forms", "TEXT")]))
+    field(15, "alsoAssign", "Also Assign Forms", "TEXT"),
+    # tiered ownership (2026-11-20, plan phases 1-4): a form is a block owned by an organization at a tier
+    # (enterprise / department / team, derived from the owner org on the org map), attached to processes through Dyn
+    # Assign records; a composed form (kind composed) lists the pinned block versions one request fills together
+    field(16, "ownerOrg", "Owner Organization", "SINGLE_INSTANCE", target="SUPERVISORY_ORGANIZATION"),
+    field(17, "tier", "Tier", "TEXT"),
+    field(18, "processType", "Process Type", "TEXT"),
+    field(19, "ownerStatus", "Owner Status", "TEXT"),
+    field(20, "blocks", "Composed Blocks", "TEXT"),
+    field(21, "composeKey", "Compose Key", "TEXT", enableIndex=True),
+    field(22, "slotCount", "Slot Count", "INTEGER"),
+    field(23, "approvedBy", "Approved By", "TEXT"),
+    field(24, "approvedTier", "Approved Tier", "TEXT"),
+    field(25, "reachAtApproval", "Reach at Approval", "INTEGER"),
+    field(26, "privacyReason", "Privacy Reason", "TEXT"),
+    field(27, "retentionMonths", "Retention Months", "INTEGER"),
+    field(28, "origin", "Origin", "TEXT"),
+    field(29, "overrides", "Overrides", "TEXT"),
+    field(30, "approvedOn", "Approved On", "DATE", precision="DAY"),
+    field(31, "kind", "Kind", "TEXT"),
+    field(32, "packageCode", "Package", "TEXT")]))
 write(os.path.join(MODEL, 'DynQuestion.businessobject'), bo(4, "DynQuestion", "Dyn Question", "dynQuestions", "All Dyn Questions", [
     field(1, "formCode", "Form Code", "TEXT", enableIndex=True),
     field(2, "qKey", "Question Key", "TEXT", useForDisplay=True),
@@ -91,7 +111,18 @@ write(os.path.join(MODEL, 'DynQuestion.businessobject'), bo(4, "DynQuestion", "D
     # labels: per-language text as JSON {"fr-CA": "...", ...}; confidential: the answer goes to DynAnswer.secretText,
     # which only the DynConfidential domain can read
     field(21, "labels", "Labels by Language", "TEXT"),
-    field(22, "confidential", "Confidential", "BOOLEAN")]))
+    field(22, "confidential", "Confidential", "BOOLEAN"),
+    # 2026-11-20: storage class (General / Confidential / Restricted; empty = General, or Confidential when the old
+    # flag is set), the shared library key (the same key in two blocks is asked once), reuse with a validity period
+    # and reset triggers (location, job), and delivered/customer origin for packages
+    field(23, "classification", "Classification", "TEXT"),
+    field(24, "libraryKey", "Library Key", "TEXT"),
+    field(25, "linkMode", "Linked or Copied", "TEXT"),
+    field(26, "reusable", "Reusable", "BOOLEAN"),
+    field(27, "validMonths", "Valid for Months", "INTEGER"),
+    field(28, "resetsWhen", "Resets When", "TEXT"),
+    field(29, "origin", "Origin", "TEXT"),
+    field(30, "overrides", "Overrides", "TEXT")]))
 write(os.path.join(MODEL, 'DynResponse.businessobject'), bo(5, "DynResponse", "Dyn Response", "dynResponses", "All Dyn Responses", [
     field(1, "responseKey", "Response Key", "TEXT", useForDisplay=True, enableIndex=True),
     field(2, "formCode", "Form Code", "TEXT"),
@@ -111,7 +142,14 @@ write(os.path.join(MODEL, 'DynResponse.businessobject'), bo(5, "DynResponse", "D
     field(12, "alsoExpected", "Also Expected Forms", "TEXT"),
     # 2026-11-19: the Person WID of the assignment's target, so a new hire before the start date (for whom
     # common/v1/workers/me fails) finds their assignments through person/v4/people/me
-    field(13, "bpPerson", "Business Process Person", "TEXT")]))
+    field(13, "bpPerson", "Business Process Person", "TEXT"),
+    # 2026-11-20: the subject's organization, department and company at composition (from the org map), the pinned
+    # block versions, and the composed form
+    field(14, "subjectOrg", "Subject Organization", "TEXT"),
+    field(15, "department", "Department", "TEXT"),
+    field(16, "company", "Company", "TEXT"),
+    field(17, "pinned", "Pinned Block Versions", "TEXT"),
+    field(18, "processType", "Process Type", "TEXT")]))
 write(os.path.join(MODEL, 'DynAnswer.businessobject'), bo(6, "DynAnswer", "Dyn Answer", "dynAnswers", "All Dyn Answers", [
     field(1, "responseKey", "Response Key", "TEXT", enableIndex=True),
     field(2, "formCode", "Form Code", "TEXT"),
@@ -125,7 +163,36 @@ write(os.path.join(MODEL, 'DynAnswer.businessobject'), bo(6, "DynAnswer", "Dyn A
     field(10, "organization", "Organization", "SINGLE_INSTANCE", target="SUPERVISORY_ORGANIZATION"),
     field(11, "position", "Position", "SINGLE_INSTANCE", target="POSITION"),
     field(12, "worker", "Worker", "SINGLE_INSTANCE", target="WORKER", enableReportingFromTarget=True),
-    field(13, "secretText", "Confidential Value", "TEXT", securityDomains=["DynConfidential"])]))
+    field(13, "secretText", "Confidential Value", "TEXT", securityDomains=["DynConfidential"]),
+    # 2026-11-20: General answers only from now on (Confidential and Restricted answers have their own objects);
+    # tier, how the value was given (asked / prefill / reused), how long it may be reused, and the context it was
+    # given in (location and job) so a reuse ends when either changes
+    field(14, "tier", "Tier", "TEXT"),
+    field(15, "source", "Source", "TEXT"),
+    field(16, "validUntil", "Valid Until", "DATE", precision="DAY"),
+    field(17, "subjectWid", "Subject", "TEXT", enableIndex=True),
+    field(18, "contextKey", "Context", "TEXT"),
+    field(19, "answeredOn", "Answered On", "DATE", precision="DAY")]))
+# Confidential and Restricted answers: same shape, each in its own security domain, never read by the gate
+for _i, _n, _l, _c, _d in ((7, "DynAnswerConf", "Dyn Answer Confidential", "dynAnswerConfs", "DynConfidential"),
+                           (8, "DynAnswerRestr", "Dyn Answer Restricted", "dynAnswerRestrs", "DynRestricted")):
+    _b = bo(_i, _n, _l, _c, "All " + _l + "s", [
+        field(1, "responseKey", "Response Key", "TEXT", enableIndex=True),
+        field(2, "formCode", "Form Code", "TEXT"),
+        field(3, "qKey", "Question Key", "TEXT", useForDisplay=True),
+        field(4, "rowNumber", "Row Number", "INTEGER"),
+        field(5, "textValue", "Text Value", "TEXT"),
+        field(6, "numberValue", "Number Value", "DECIMAL", decimals=2),
+        field(7, "dateValue", "Date Value", "DATE", precision="DAY"),
+        field(8, "refDescriptor", "Picked Record Name", "TEXT"),
+        field(9, "tier", "Tier", "TEXT"),
+        field(10, "source", "Source", "TEXT"),
+        field(11, "validUntil", "Valid Until", "DATE", precision="DAY"),
+        field(12, "subjectWid", "Subject", "TEXT", enableIndex=True),
+        field(13, "contextKey", "Context", "TEXT"),
+        field(14, "answeredOn", "Answered On", "DATE", precision="DAY")])
+    _b["defaultSecurityDomains"] = [_d]
+    write(os.path.join(MODEL, _n + '.businessobject'), _b)
 write(os.path.join(MODEL, 'DynConfidential.securitydomain'), {"id": 2, "name": "DynConfidential", "label": "Dyn Confidential Answers",
                                                               "enabledForPageSecurity": False, "enabledForOrchestrationSecurity": False})
 
@@ -186,6 +253,85 @@ var overMax = function(d, key, val) {
   for (var x : (d ?? [])) { if ((x.pKey ?? '') == key && !empty(key) && (x.rowNumber ?? 0) > top) { top = x.rowNumber; } }
   top == 0 ? 'na' : ((!empty(val) && ('' + val).isNumber() && ('' + val).toDecimal() > top) ? ('At most ' + top + ' here; only ' + top + ' can be entered.') : 'ok');
 };
+// ---- composition (2026-11-20): a composed form (Dyn Form kind composed) lists its pinned blocks as
+// "tierRank:code,..."; the page loads each block's questions (b1..b6) and this puts them in one list: enterprise first,
+// then department, then team, each block's own order kept. A library key asked by an earlier block is not asked again.
+// Reusable answers still valid (same location and job as when given) fill the question in, and the label says so;
+// questions that prefill from Workday come first with "Check:" so the person confirms them.
+var blk = function(cmp, n) {
+  var b = ('' + (((cmp ?? []).size() > 0 ? cmp[0].blocks : '') ?? '')).split(',');
+  var raw = b.size() >= n ? ('' + b.get(n - 1)).trim() : '';
+  raw.contains(':') ? raw.substringAfter(':') : raw;
+};
+
+var rank = function(cmp, n) {
+  var b = ('' + (((cmp ?? []).size() > 0 ? cmp[0].blocks : '') ?? '')).split(',');
+  var raw = b.size() >= n ? ('' + b.get(n - 1)).trim() : '';
+  raw.contains(':') ? raw.substringBefore(':').toInt() : n;
+};
+
+var tierName = function(r) {
+  r == 1 ? 'Enterprise' : (r == 2 ? 'Department' : 'Team');
+};
+
+// the reuse context: a reusable answer stops being offered when the person's location or job title changes
+var ctxOf = function(w) {
+  var loc = empty(w) ? {:} : (w.location ?? {:});
+  'loc=' + (loc.id ?? '') + ';job=' + (empty(w) ? '' : (w.businessTitle ?? ''));
+};
+
+var ctx2 = function(x, w) {
+  ctxOf(w);
+};
+
+var whoId = function(x, w) {
+  empty(w) ? '' : ('' + (w.id ?? ''));
+};
+
+var reuseOf = function(prior, key, ctx, today) {
+  var hit = {:};
+  for (var a : prior ?? []) {
+    var vu = ('' + (a.validUntil ?? '')).replace('-', '');
+    if ((a.qKey ?? '') == key && ('' + (a.contextKey ?? '')) == ctx && vu.length() >= 8 && vu.substring(0, 8).toInt() >= today) { hit = a; }
+  }
+  hit;
+};
+
+var merge = function(own, cmp, parts, prior, w) {
+  var ctx = ctxOf(w);
+  var out = [];
+  var seen = '|';
+  var today = date:now().format('yyyyMMdd').toInt();
+  var lists = (cmp ?? []).size() > 0 && !empty(cmp[0].blocks) ? parts : [own ?? []];
+  var n = 0;
+  for (var p : lists) {
+    n = n + 1;
+    var r = (cmp ?? []).size() > 0 && !empty(cmp[0].blocks) ? rank(cmp, n) : 0;
+    for (var x : sorted(p)) {
+      var lib = '' + (x.libraryKey ?? '');
+      if (empty(lib) || !seen.contains('|' + lib + '|')) {
+        if (!empty(lib)) { seen = seen + lib + '|'; }
+        var m = {:};
+        m.addAll(x);
+        var pre1 = !empty(x.prefill) && x.prefill != 'noPrefill';
+        m.put('sortOrder', (pre1 ? 0 : (r * 10000 + n * 1000)) + (x.sortOrder ?? 0));
+        if (r > 0) { m.put('tier', tierName(r)); }
+        if (pre1) { m.put('qLabel', 'Check: ' + (x.qLabel ?? '')); }
+        if (x.reusable == true) {
+          var hit = reuseOf(prior, x.qKey ?? '', ctx, today);
+          if (!empty(hit.qKey)) {
+            m.put('reuseText', hit.textValue ?? '');
+            m.put('reuseNum', hit.numberValue);
+            m.put('qLabel', (x.qLabel ?? '') + ' (from your earlier answer, kept until ' + ('' + (hit.validUntil ?? '')).truncate(10) + '; change it if it is no longer right)');
+          }
+        }
+        out.add(m);
+      }
+    }
+  }
+  out;
+};
+
 var expand = function(d, s1, s2, s3) {
   var kids = [s1 ?? [], s2 ?? [], s3 ?? []];
   var out = [];
@@ -245,8 +391,15 @@ var ll = function(d, i, lang) {
   (empty(lang) || raw.indexOf(tag) < 0) ? l(d, i) : raw.substringAfter(tag).substringBefore('"');
 };
 
+// storage class (2026-11-20): General / Confidential / Restricted; the old confidential flag means Confidential
+var cls = function(d, i) {
+  var x = q(d, i);
+  var c = ('' + (x.classification ?? '')).lowerCase();
+  c == 'confidential' ? 'Confidential' : (c == 'restricted' ? 'Restricted' : (x.confidential == true ? 'Confidential' : 'General'));
+};
+
 var sec = function(d, i) {
-  q(d, i).confidential == true;
+  cls(d, i) != 'General';
 };
 
 var h = function(d, i) {
@@ -342,6 +495,31 @@ var answers = function(d, ans, responseKey, formCode) {
   out;
 };
 
+// one storage class of the answers lanswers built (General -> Dyn Answer, Confidential -> Dyn Answer Confidential,
+// Restricted -> Dyn Answer Restricted); a protected value moves from secretText to textValue in its own object
+var byCls = function(rows, c, subj, ctx) {
+  var out = [];
+  for (var a : rows ?? []) {
+    if (('' + (a.cls ?? 'General')) == c) {
+      var m = {:};
+      for (var f : ['responseKey', 'formCode', 'qKey', 'rowNumber', 'textValue', 'numberValue', 'dateValue', 'refDescriptor', 'tier', 'source']) {
+        if (a.get(f) != null) { m.put(f, a.get(f)); }
+      }
+      if (c == 'General') {
+        for (var g : ['refId', 'organization', 'position', 'worker']) { if (a.get(g) != null) { m.put(g, a.get(g)); } }
+      } else {
+        if (a.secretText != null) { m.put('textValue', a.secretText); }
+      }
+      m.put('subjectWid', subj ?? '');
+      m.put('contextKey', ctx ?? '');
+      m.put('answeredOn', date:now().format('yyyy-MM-dd'));
+      if ((a.vm ?? 0) > 0) { m.put('validUntil', date:now().plusMonths(a.vm).format('yyyy-MM-dd')); }
+      out.add(m);
+    }
+  }
+  out;
+};
+
 var qmap = function(code, n, key, ty, label, required, opts, showKey, showOp, showValue, calc, help) {
   var m = {:};
   m.put('formCode', code);
@@ -401,10 +579,15 @@ var rxErr = function(d, i, v) {
   (empty(rx) || empty(v)) ? '' : (validate:match(rx, '' + v) ? '' : (empty(msg) ? 'Not in the expected format.' : msg));
 };
 
+var preN = function(d, i) {
+  q(d, i).reuseNum;
+};
+
 var pre = function(d, i, w) {
+  var rt = '' + (q(d, i).reuseText ?? '');
   var key = q(d, i).prefill ?? '';
   var loc = empty(w) ? {:} : (w.location ?? {:});
-  empty(w) ? '' : (key == 'name' ? (w.descriptor ?? '') : (key == 'title' ? (w.businessTitle ?? '') : (key == 'location' ? (loc.descriptor ?? '') : (key == 'email' ? (w.primaryWorkEmail ?? '') : ''))));
+  !empty(rt) ? rt : (empty(w) ? '' : (key == 'name' ? (w.descriptor ?? '') : (key == 'title' ? (w.businessTitle ?? '') : (key == 'location' ? (loc.descriptor ?? '') : (key == 'email' ? (w.primaryWorkEmail ?? '') : '')))));
 };
 
 var preSel = function(d, i, w) {
@@ -523,6 +706,10 @@ var lanswers = function(d, rows, responseKey, formCode, ans) {
     // a confidential answer of any type goes only to secretText (the DynConfidential field), never to the open
     // value fields that the gate, comments and reports read (2026-11-19: numbers, dates and yes/no used to bypass it)
     var hide = sec(d, i);
+    m.put('cls', cls(d, i));
+    m.put('tier', q(d, i).tier ?? '');
+    m.put('source', !empty(q(d, i).reuseText) || q(d, i).reuseNum != null ? 'reused' : ((!empty(q(d, i).prefill) && q(d, i).prefill != 'noPrefill') ? 'prefill' : 'asked'));
+    m.put('vm', q(d, i).reusable == true ? (q(d, i).validMonths ?? 12) : 0);
     if (kind == 'text' && !empty(row[0])) { m.put(hide ? 'secretText' : 'textValue', '' + row[0]); out.add(m); }
     if (kind == 'number' && !empty(row[5])) { if (hide) { m.put('secretText', '' + row[5]); } else { m.put('numberValue', row[5]); } out.add(m); }
     if (kind == 'date' && !empty(row[6])) { m.put(hide ? 'secretText' : 'dateValue', row[6].format('yyyy-MM-dd')); out.add(m); }
@@ -600,7 +787,7 @@ var cpPlan = function(src, picked, tgt, code, mode, sizes) {
   for (var x : rows) {
     i = i + 1;
     var m = {:};
-    for (var f : ['qType', 'qLabel', 'help', 'required', 'qOptions', 'showOp', 'showValue', 'lookup', 'prefill', 'regex', 'regexMessage', 'dataSource', 'sourceField', 'targetField', 'params', 'labels', 'confidential']) { var val = x.get(f); if (val != null) { m.put(f, val); } }
+    for (var f : ['qType', 'qLabel', 'help', 'required', 'qOptions', 'showOp', 'showValue', 'lookup', 'prefill', 'regex', 'regexMessage', 'dataSource', 'sourceField', 'targetField', 'params', 'labels', 'confidential', 'classification', 'libraryKey', 'linkMode', 'reusable', 'validMonths', 'resetsWhen', 'origin', 'overrides']) { var val = x.get(f); if (val != null) { m.put(f, val); } }
     m.put('formCode', code);
     m.put('sortOrder', base + i);
     m.put('qKey', ren.get(x.qKey ?? ''));
@@ -752,7 +939,7 @@ var ansQ = function(keys) {
 {
   "q": q, "k": k, "t": t, "l": l, "ll": ll, "sec": sec, "h": h, "wi": wi, "req": req, "c": c, "str": str, "show": show, "v": v, "r": r, "o": o,
   "pick": pick, "num": num, "shownKey": shownKey, "calcVal": calcVal, "answers": answers, "qmap": qmap, "sample": sample,
-  "lk": lk, "uses": uses, "wk": wk, "rxErr": rxErr, "pick2": pick2, "wi2": wi2, "pre": pre, "preSel": preSel, "posName": posName, "ref2": ref2, "pItem": pItem, "pKey": pKey, "pGroups": pGroups, "pRoot": pRoot, "pLevel": pLevel, "pFind": pFind, "opts": opts, "clean": clean, "wmap": wmap, "ref": ref, "lanswers": lanswers, "resQ": resQ, "ansQ": ansQ, "widOf": widOf, "formWid": formWid, "statusWid": statusWid, "subjWid": subjWid, "subjName": subjName, "qWid": qWid, "pending": pending, "cap": cap, "tag": tag, "copyQ": copyQ, "newKey": newKey, "fRow": fRow, "family": family, "cpCode": cpCode, "cpVersion": cpVersion, "cpPlan": cpPlan, "cpExport": cpExport, "cpImport": cpImport, "childQ": childQ, "par": par, "repQ": repQ, "sw": sw, "rq": rq, "subCode": subCode, "overMax": overMax, "expand": expand, "ex": expand, "cond": cond, "nextForm": nextForm
+  "lk": lk, "uses": uses, "wk": wk, "rxErr": rxErr, "pick2": pick2, "wi2": wi2, "pre": pre, "preSel": preSel, "posName": posName, "ref2": ref2, "pItem": pItem, "pKey": pKey, "pGroups": pGroups, "pRoot": pRoot, "pLevel": pLevel, "pFind": pFind, "opts": opts, "clean": clean, "wmap": wmap, "ref": ref, "lanswers": lanswers, "resQ": resQ, "ansQ": ansQ, "widOf": widOf, "formWid": formWid, "statusWid": statusWid, "subjWid": subjWid, "subjName": subjName, "qWid": qWid, "pending": pending, "cap": cap, "tag": tag, "copyQ": copyQ, "newKey": newKey, "fRow": fRow, "family": family, "cpCode": cpCode, "cpVersion": cpVersion, "cpPlan": cpPlan, "cpExport": cpExport, "cpImport": cpImport, "childQ": childQ, "par": par, "repQ": repQ, "sw": sw, "rq": rq, "subCode": subCode, "overMax": overMax, "expand": expand, "ex": expand, "cond": cond, "nextForm": nextForm, "cls": cls, "blk": blk, "rank": rank, "merge": merge, "ctxOf": ctxOf, "byCls": byCls, "preN": preN, "tierName": tierName, "whoId": whoId, "ctx2": ctx2
 }
 '''
 with open(os.path.join(PRES, 'scripts', 'df.script'), 'w', encoding='utf-8') as f:
@@ -768,7 +955,7 @@ def X(expr):
     return "<% " + expr + " %>"
 
 
-D = "df.ex(qs.data??[],s1.data??[],s2.data??[],s3.data??[])"
+D = "df.ex(df.merge(qs.data??[],cmp.data??[],[b1.data??[],b2.data??[],b3.data??[],b4.data??[],b5.data??[],b6.data??[]],ru.data??[], me),s1.data??[],s2.data??[],s3.data??[])"
 SUBS = [{"name": "s%d" % n, "baseUrlType": "app", "authType": "sso", "failOnStatusCodes": FAIL,
          "url": "<% 'dynQuestions?limit=100&formCode=' + df.subCode(qs.data ?? [], " + str(n) + ").urlEncode() %>",
          "exclude": "<% empty(df.subCode(qs.data ?? [], " + str(n) + ")) %>"} for n in (1, 2, 3)]
@@ -908,7 +1095,16 @@ def wql(name, query, limit, src):
             "exclude": X("!df.uses(" + D + ", '%s')" % src)}
 
 
-LOOKUP_EPS = [QS, ME] + SUBS + [
+# composition and reuse (2026-11-20): the form record (a composed form lists its blocks), each block's questions, and the
+# subject's earlier General answers (reusable ones are offered again while still valid)
+CMP = {"name": "cmp", "baseUrlType": "app", "authType": "sso", "failOnStatusCodes": FAIL,
+       "url": "<% 'dynForms?limit=1&code=' + (queryParams.form ?? 'TEST:DYN:LOOKUP2').urlEncode() %>"}
+BLKS = [{"name": "b%d" % n, "baseUrlType": "app", "authType": "sso", "failOnStatusCodes": FAIL,
+         "url": "<% 'dynQuestions?limit=100&formCode=' + df.blk(cmp.data ?? [], " + str(n) + ").urlEncode() %>",
+         "exclude": "<% empty(df.blk(cmp.data ?? [], " + str(n) + ")) %>"} for n in range(1, 7)]
+RU = {"name": "ru", "baseUrlType": "app", "authType": "sso",
+      "url": "<% 'dynAnswers?limit=100&subjectWid=' + df.whoId('', me).urlEncode() %>", "exclude": "<% empty(df.whoId('', me)) %>"}
+LOOKUP_EPS = [QS, ME, CMP] + BLKS + [RU] + SUBS + [
               wql("orgs", "SELECT workdayID, name, supervisoryManager, superiorOrganization, primaryLocation FROM supervisoryOrganizations ORDER BY name", 1000, "orgs"),
               wql("positions", "SELECT workdayID, positionID, positionTitle, worker, supervisoryOrganization, manager, location FROM allPositions ORDER BY positionID", 1000, "positions"),
               wql("domains", "SELECT workdayID, domainName, functionalAreas FROM allDomains", 10000, "domains"),
@@ -931,7 +1127,7 @@ def lslot(i):
          "value": X("df.pre(%s, me)" % a),
          "onChange": X("refresh(); rx(%d, self)" % i)},
         {"type": "number", "id": "q%dNumber" % i, "label": lab, "visible": shown("number"), "required": req("number"),
-         "enabled": X("!df.c(%s)" % a), "onChange": oc},
+         "enabled": X("!df.c(%s)" % a), "value": X("df.preN(%s)" % a), "onChange": oc},
         {"type": "date", "id": "q%dDate" % i, "label": lab, "visible": shown("date"), "required": req("date"), "onChange": oc},
         {"type": "instanceList", "id": "q%dChoiceInstanceList" % i, "label": lab, "visible": shown("choice"), "required": req("choice"),
          "values": X("df.o(%s)" % a), "onChange": oc},
@@ -977,8 +1173,17 @@ LOOKUP_SCRIPT = ("<%\n  var F = function() {\n    json:parse(dxHidden.getValue()
                  "      if (!empty(df.k(d, j))) {\n        var vis = df.show(d, j, ans);\n        s2[0].setVisible(vis);\n"
                  "        var w = s2[df.wi2(d, j)];\n        w.setRequired(vis && df.req(d, j) && df.wk(d, j) != 'yesno');\n"
                  "        var om = df.overMax(d, df.k(d, j), w.getValue());\n        if (om == 'ok') { w.clearError(); } else { if (om != 'na') { w.setError(om); } }\n"
-                 "        if (df.c(d, j)) { var nv = df.calcVal(d, j, ans); if (s2[2].getValue() != nv) { s2[2].setValue(nv); } }\n      }\n    }\n    ans;\n  };\n%>")
+                 "        if (df.c(d, j)) { var nv = df.calcVal(d, j, ans); if (s2[2].getValue() != nv) { s2[2].setValue(nv); } }\n      }\n    }\n    ans;\n  };\n"
+                 "  var AL = function() {\n    df.lanswers(F(), [" + ", ".join(lrow(i) for i in range(1, LOOKUP_SLOTS + 1)) + "], responseKeyText.getValue(), formCodeText.getValue(), refresh());\n  };\n%>")
 
+# answers by storage class (2026-11-20): General to Dyn Answer, Confidential and Restricted each to their own object
+_LA = "AL()"
+ANSWER_POSTS = [
+    {"name": ep, "baseUrlType": "app", "url": coll + "?bulk=true", "httpMethod": "POST", "authType": "sso", "failOnStatusCodes": FAIL,
+     "exclude": "<% df.byCls(" + _LA + ", '" + c + "', df.whoId('', me), df.ctx2('', me)).size() == 0 %>" if c != "General" else "<% false %>",
+     "onSend": "<% self.data = {:}; self.data.data = df.byCls(" + _LA + ", '" + c + "', df.whoId('', me), df.ctx2('', me)); self.data; %>"}
+    for ep, coll, c in (("postAnswers", "dynAnswers", "General"), ("postConf", "dynAnswerConfs", "Confidential"),
+                        ("postRestr", "dynAnswerRestrs", "Restricted"))]
 lookup_page = {"id": "DynFormLookup", "securityDomains": DOM, "include": ["df.script", "browse.script"], "endPoints": LOOKUP_EPS, "script": LOOKUP_SCRIPT,
     "outboundData": {"outboundEndPoints": [
         {"name": "postResponse", "baseUrlType": "app", "url": "dynResponses", "httpMethod": "POST", "authType": "sso",
@@ -989,10 +1194,7 @@ lookup_page = {"id": "DynFormLookup", "securityDomains": DOM, "include": ["df.sc
                    "var fc = '' + formCodeText.getValue(); self.data.family = fc.contains('@') ? fc.substringBefore('@') : fc; "
                    "self.data.formVersion = fc.contains('@') ? fc.substringAfter('@').toInt() : 1; "
                    "self.data.orgName = empty(me.primarySupervisoryOrganization) ? '' : ('' + (me.primarySupervisoryOrganization.descriptor ?? '')); self.data; %>"},
-        {"name": "postAnswers", "baseUrlType": "app", "url": "dynAnswers?bulk=true", "httpMethod": "POST", "authType": "sso",
-         "failOnStatusCodes": FAIL,
-         "onSend": "<% self.data = {:}; self.data.data = df.lanswers(" + D + ", [" + ", ".join(lrow(i) for i in range(1, LOOKUP_SLOTS + 1)) +
-                   "], responseKeyText.getValue(), formCodeText.getValue(), refresh()); self.data; %>"}]},
+    ] + ANSWER_POSTS},
     "presentation": {"pageType": "EDIT", "title": {"type": "title", "id": "pageTitle", "label": "Fill a form"},
                      "cancelOverride": {"taskId": "FormStudio"},
                      "body": {"type": "section", "id": "bodySection", "children": [
@@ -1057,6 +1259,12 @@ _mf = _mf.replace("empty(me.primarySupervisoryOrganization) ? '' : ('' + (me.pri
 _mf = _mf.replace(", me)", ", ME())")
 assert " me." not in _mf and "(me." not in _mf and ", me)" not in _mf, "a me reference is left on DynMyFill"
 my_fill = json.loads(_mf)
+# earlier answers of the worker this form is for (the assignment's target; employees can't read others' through this)
+_SUBJ = "((asgOne.data ?? []).size() > 0 ? ('' + (asgOne.data[0].bpTarget ?? '')) : '')"
+for e in my_fill["endPoints"]:
+    if e["name"] == "ru":
+        e["url"] = "<% 'dynAnswers?limit=100&subjectWid=' + " + _SUBJ + ".urlEncode() %>"
+        e["exclude"] = "<% empty(" + _SUBJ + ") %>"
 for e in my_fill["outboundData"]["outboundEndPoints"]:
     e["authType"] = "isuAuth"
 my_fill["presentation"]["title"]["label"] = "Fill your form"

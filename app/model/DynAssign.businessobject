@@ -1,0 +1,97 @@
+{
+  "id": 9,
+  "name": "DynAssign",
+  "label": "Dyn Assign",
+  "defaultSecurityDomains": [
+    "UseDynamicForms",
+    "DynAuthor"
+  ],
+  "defaultCollection": {
+    "name": "dynAssigns",
+    "label": "All Dyn Assigns"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "ref",
+      "label": "Reference",
+      "type": "TEXT",
+      "useForDisplay": true
+    },
+    {
+      "id": 2,
+      "name": "family",
+      "label": "Block Family",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 3,
+      "name": "processType",
+      "label": "Process Type",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 4,
+      "name": "ownerOrg",
+      "label": "Owner Organization",
+      "type": "SINGLE_INSTANCE",
+      "target": "SUPERVISORY_ORGANIZATION"
+    },
+    {
+      "id": 5,
+      "name": "ownerWid",
+      "label": "Owner Organization ID",
+      "type": "TEXT"
+    },
+    {
+      "id": 6,
+      "name": "scope",
+      "label": "Scope",
+      "type": "TEXT"
+    },
+    {
+      "id": 7,
+      "name": "gateOn",
+      "label": "Gate On",
+      "type": "BOOLEAN"
+    },
+    {
+      "id": 8,
+      "name": "sectionOrder",
+      "label": "Section Order",
+      "type": "INTEGER"
+    },
+    {
+      "id": 9,
+      "name": "tier",
+      "label": "Tier",
+      "type": "TEXT"
+    },
+    {
+      "id": 10,
+      "name": "active",
+      "label": "Active",
+      "type": "BOOLEAN"
+    },
+    {
+      "id": 11,
+      "name": "origin",
+      "label": "Origin",
+      "type": "TEXT"
+    },
+    {
+      "id": 12,
+      "name": "overrides",
+      "label": "Overrides",
+      "type": "TEXT"
+    },
+    {
+      "id": 13,
+      "name": "reach",
+      "label": "Reach",
+      "type": "INTEGER"
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "id": 13,
+  "name": "DynKitItem",
+  "label": "Dyn Kit Item",
+  "defaultSecurityDomains": [
+    "UseDynamicForms",
+    "DynAuthor"
+  ],
+  "defaultCollection": {
+    "name": "dynKitItems",
+    "label": "All Dyn Kit Items"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "code",
+      "label": "Code",
+      "type": "TEXT",
+      "useForDisplay": true,
+      "enableIndex": true
+    },
+    {
+      "id": 2,
+      "name": "itemType",
+      "label": "Item Type",
+      "type": "TEXT"
+    },
+    {
+      "id": 3,
+      "name": "ownerOrg",
+      "label": "Owner Organization",
+      "type": "SINGLE_INSTANCE",
+      "target": "SUPERVISORY_ORGANIZATION"
+    },
+    {
+      "id": 4,
+      "name": "ownerWid",
+      "label": "Owner Organization ID",
+      "type": "TEXT"
+    },
+    {
+      "id": 5,
+      "name": "scope",
+      "label": "Scope",
+      "type": "TEXT"
+    },
+    {
+      "id": 6,
+      "name": "tier",
+      "label": "Tier",
+      "type": "TEXT"
+    },
+    {
+      "id": 7,
+      "name": "title",
+      "label": "Title",
+      "type": "TEXT"
+    },
+    {
+      "id": 8,
+      "name": "body",
+      "label": "Body",
+      "type": "TEXT"
+    },
+    {
+      "id": 9,
+      "name": "dueOffset",
+      "label": "Due Offset Days",
+      "type": "INTEGER"
+    },
+    {
+      "id": 10,
+      "name": "fulfillerGroup",
+      "label": "Fulfiller Group",
+      "type": "TEXT"
+    },
+    {
+      "id": 11,
+      "name": "sensitivity",
+      "label": "Sensitivity",
+      "type": "TEXT"
+    },
+    {
+      "id": 12,
+      "name": "link",
+      "label": "Link",
+      "type": "TEXT"
+    },
+    {
+      "id": 13,
+      "name": "version",
+      "label": "Version",
+      "type": "INTEGER"
+    },
+    {
+      "id": 14,
+      "name": "status",
+      "label": "Status",
+      "type": "TEXT"
+    },
+    {
+      "id": 15,
+      "name": "origin",
+      "label": "Origin",
+      "type": "TEXT"
+    },
+    {
+      "id": 16,
+      "name": "overrides",
+      "label": "Overrides",
+      "type": "TEXT"
+    },
+    {
+      "id": 17,
+      "name": "packageCode",
+      "label": "Package",
+      "type": "TEXT"
+    },
+    {
+      "id": 18,
+      "name": "processType",
+      "label": "Process Type",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 19,
+      "name": "approvedBy",
+      "label": "Approved By",
+      "type": "TEXT"
+    },
+    {
+      "id": 20,
+      "name": "active",
+      "label": "Active",
+      "type": "BOOLEAN"
+    }
+  ]
+}

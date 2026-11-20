@@ -1,0 +1,7 @@
+{
+  "id": 5,
+  "name": "DynAuthor",
+  "label": "Dyn Forms Author",
+  "enabledForPageSecurity": true,
+  "enabledForOrchestrationSecurity": true
+}

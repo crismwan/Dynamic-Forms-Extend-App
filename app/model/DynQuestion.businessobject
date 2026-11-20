@@ -143,6 +143,54 @@
       "name": "confidential",
       "label": "Confidential",
       "type": "BOOLEAN"
+    },
+    {
+      "id": 23,
+      "name": "classification",
+      "label": "Classification",
+      "type": "TEXT"
+    },
+    {
+      "id": 24,
+      "name": "libraryKey",
+      "label": "Library Key",
+      "type": "TEXT"
+    },
+    {
+      "id": 25,
+      "name": "linkMode",
+      "label": "Linked or Copied",
+      "type": "TEXT"
+    },
+    {
+      "id": 26,
+      "name": "reusable",
+      "label": "Reusable",
+      "type": "BOOLEAN"
+    },
+    {
+      "id": 27,
+      "name": "validMonths",
+      "label": "Valid for Months",
+      "type": "INTEGER"
+    },
+    {
+      "id": 28,
+      "name": "resetsWhen",
+      "label": "Resets When",
+      "type": "TEXT"
+    },
+    {
+      "id": 29,
+      "name": "origin",
+      "label": "Origin",
+      "type": "TEXT"
+    },
+    {
+      "id": 30,
+      "name": "overrides",
+      "label": "Overrides",
+      "type": "TEXT"
     }
   ]
 }

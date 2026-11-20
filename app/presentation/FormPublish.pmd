@@ -1,0 +1,273 @@
+{
+  "id": "FormPublish",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynAuthor",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "formRec",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% 'dynForms?limit=1&code=' + (queryParams.form ?? '').urlEncode() %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "exclude": "<% empty(queryParams.form) %>"
+    },
+    {
+      "name": "qs",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% 'dynQuestions?limit=100&formCode=' + (queryParams.form ?? '').urlEncode() %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "exclude": "<% empty(queryParams.form) %>"
+    },
+    {
+      "name": "fams",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% 'dynForms?limit=100&family=' + ('' + (tier.first(formRec.data ?? []).family ?? (queryParams.form ?? ''))).urlEncode() %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "exclude": "<% empty(queryParams.form) %>"
+    },
+    {
+      "name": "oldQs",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% 'dynQuestions?limit=100&formCode=' + ('' + (tier.published(fams.data ?? []).code ?? 'none')).urlEncode() %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "exclude": "<% empty(tier.published(fams.data ?? []).code) %>"
+    },
+    {
+      "name": "asgs",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% 'dynAssigns?limit=100&family=' + ('' + (tier.first(formRec.data ?? []).family ?? (queryParams.form ?? ''))).urlEncode() %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "exclude": "<% empty(queryParams.form) %>"
+    },
+    {
+      "name": "settings",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynSettings?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "me",
+      "baseUrlType": "workday-api",
+      "url": "common/v1/workers/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "publishV",
+        "baseUrlType": "app",
+        "url": "<% 'dynForms/' + (tier.first(formRec.data ?? []).id ?? 'none') %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(tier.first(formRec.data ?? []).id) || approveCheckBox.value != true || !empty(tier.publishErr(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? [], tier.first(formRec.data ?? []), qs.data ?? [], asgs.data ?? [], govCheckBox.getValue(), reasonText.getValue())) %>",
+        "onSend": "<% var b = {:}; b.put('status', 'Published'); b.put('approvedBy', me.descriptor ?? ''); b.put('approvedTier', tier.blockTier(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), tier.first(formRec.data ?? []), asgs.data ?? [])); b.put('tier', tier.blockTier(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), tier.first(formRec.data ?? []), asgs.data ?? [])); b.put('reachAtApproval', tier.reachAll(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), asgs.data ?? [])); b.put('slotCount', tier.slots(qs.data ?? [])); b.put('privacyReason', reasonText.getValue() ?? ''); b.put('retentionMonths', retentionNumber.getValue() ?? 84); b.put('approvedOn', date:now().format('yyyy-MM-dd')); b; %>"
+      },
+      {
+        "name": "supersede",
+        "baseUrlType": "app",
+        "url": "<% 'dynForms/' + (tier.published(fams.data ?? []).id ?? 'none') %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(tier.published(fams.data ?? []).id) || (tier.published(fams.data ?? []).id ?? '') == (tier.first(formRec.data ?? []).id ?? '') || approveCheckBox.value != true || !empty(tier.publishErr(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? [], tier.first(formRec.data ?? []), qs.data ?? [], asgs.data ?? [], govCheckBox.getValue(), reasonText.getValue())) %>",
+        "onSend": "<% self.data = {:}; self.data.status = 'Superseded'; self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormPublish_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormPublish_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormPublish_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "checkFieldSet",
+          "title": "<% presentationLabels.FormPublish_checkFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "formText",
+              "label": "<% presentationLabels.FormPublish_formText_label %>",
+              "enabled": false,
+              "value": "<% (queryParams.form ?? '(none: open from Form Studio)') + '  ' + (tier.first(formRec.data ?? []).formName ?? '') + ' (' + (tier.first(formRec.data ?? []).status ?? '') + ')' %>"
+            },
+            {
+              "type": "text",
+              "id": "summaryText",
+              "label": "<% presentationLabels.FormPublish_summaryText_label %>",
+              "enabled": false,
+              "value": "<% tier.summary(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? [], tier.first(formRec.data ?? []), qs.data ?? [], asgs.data ?? []) %>"
+            },
+            {
+              "type": "text",
+              "id": "diffText",
+              "label": "<% presentationLabels.FormPublish_diffText_label %>",
+              "enabled": false,
+              "value": "<% '' + (tier.published(fams.data ?? []).code ?? 'none') + ': ' + tier.diff(oldQs.data ?? [], qs.data ?? []) %>"
+            },
+            {
+              "type": "text",
+              "id": "reasonText",
+              "label": "<% presentationLabels.FormPublish_reasonText_label %>",
+              "value": "<% tier.first(formRec.data ?? []).privacyReason ?? '' %>"
+            },
+            {
+              "type": "number",
+              "id": "retentionNumber",
+              "label": "<% presentationLabels.FormPublish_retentionNumber_label %>",
+              "value": "<% tier.first(formRec.data ?? []).retentionMonths ?? 84 %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "govCheckBox",
+              "label": "<% presentationLabels.FormPublish_govCheckBox_label %>",
+              "value": "<% false %>",
+              "onChange": "<% approveCheckBox.clearError() %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "approveCheckBox",
+              "label": "<% presentationLabels.FormPublish_approveCheckBox_label %>",
+              "required": true,
+              "value": "<% false %>",
+              "onChange": "<% var e = tier.publishErr(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? [], tier.first(formRec.data ?? []), qs.data ?? [], asgs.data ?? [], govCheckBox.getValue(), reasonText.getValue()); if (empty(e)) { self.clearError(); } else { self.setError(e); } %>"
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormStudio"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": 7,
+  "name": "DynIntegration",
+  "label": "Dyn Forms Integration",
+  "enabledForPageSecurity": true,
+  "enabledForOrchestrationSecurity": false
+}

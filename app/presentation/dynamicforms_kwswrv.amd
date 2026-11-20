@@ -177,6 +177,292 @@
           "endsFlow": true
         }
       ]
+    },
+    {
+      "id": "tierFormAssignmentsFlow",
+      "flowSteps": [
+        {
+          "id": "tierFormAssignmentsFlowStart",
+          "taskId": "FormAssignments",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierFormAssignmentsFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierFormAssignmentsFlowEnd",
+          "taskId": "FormGovern",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierFormDepartmentsFlow",
+      "flowSteps": [
+        {
+          "id": "tierFormDepartmentsFlowStart",
+          "taskId": "FormDepartments",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierFormDepartmentsFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierFormDepartmentsFlowEnd",
+          "taskId": "FormGovern",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierFormOrgMapFlow",
+      "flowSteps": [
+        {
+          "id": "tierFormOrgMapFlowStart",
+          "taskId": "FormOrgMap",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierFormOrgMapFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierFormOrgMapFlowEnd",
+          "taskId": "FormGovern",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierFormSettingsFlow",
+      "flowSteps": [
+        {
+          "id": "tierFormSettingsFlowStart",
+          "taskId": "FormSettings",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierFormSettingsFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierFormSettingsFlowEnd",
+          "taskId": "FormGovern",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierFormPublishFlow",
+      "flowSteps": [
+        {
+          "id": "tierFormPublishFlowStart",
+          "taskId": "FormPublish",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierFormPublishFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierFormPublishFlowEnd",
+          "taskId": "FormStudio",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierFormPurgeFlow",
+      "flowSteps": [
+        {
+          "id": "tierFormPurgeFlowStart",
+          "taskId": "FormPurge",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierFormPurgeFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierFormPurgeFlowEnd",
+          "taskId": "FormGovern",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierKitDesignerFlow",
+      "flowSteps": [
+        {
+          "id": "tierKitDesignerFlowStart",
+          "taskId": "KitDesigner",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierKitDesignerFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierKitDesignerFlowEnd",
+          "taskId": "FormGovern",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierKitPackagesFlow",
+      "flowSteps": [
+        {
+          "id": "tierKitPackagesFlowStart",
+          "taskId": "KitPackages",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierKitPackagesFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierKitPackagesFlowEnd",
+          "taskId": "FormGovern",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierKitPeersFlow",
+      "flowSteps": [
+        {
+          "id": "tierKitPeersFlowStart",
+          "taskId": "KitPeers",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierKitPeersFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierKitPeersFlowEnd",
+          "taskId": "FormGovern",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierKitQueueFlow",
+      "flowSteps": [
+        {
+          "id": "tierKitQueueFlowStart",
+          "taskId": "KitQueue",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierKitQueueFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierKitQueueFlowEnd",
+          "taskId": "FormGovern",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierFormMyAnswersFlow",
+      "flowSteps": [
+        {
+          "id": "tierFormMyAnswersFlowStart",
+          "taskId": "FormMyAnswers",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierFormMyAnswersFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierFormMyAnswersFlowEnd",
+          "taskId": "DynMyForms",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierKitGuideFlow",
+      "flowSteps": [
+        {
+          "id": "tierKitGuideFlowStart",
+          "taskId": "KitGuide",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierKitGuideFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierKitGuideFlowEnd",
+          "taskId": "DynMyForms",
+          "endsFlow": true
+        }
+      ]
+    },
+    {
+      "id": "tierKitPrepareFlow",
+      "flowSteps": [
+        {
+          "id": "tierKitPrepareFlowStart",
+          "taskId": "KitPrepare",
+          "startsFlow": true,
+          "transitions": [
+            {
+              "order": "a",
+              "value": "tierKitPrepareFlowEnd",
+              "condition": "<% true %>"
+            }
+          ]
+        },
+        {
+          "id": "tierKitPrepareFlowEnd",
+          "taskId": "DynMyForms",
+          "endsFlow": true
+        }
+      ]
     }
   ],
   "dataProviders": [
@@ -333,6 +619,132 @@
       "routingPattern": "/dynFormPrune",
       "page": {
         "id": "DynFormPrune"
+      }
+    },
+    {
+      "id": "FormGovern",
+      "routingPattern": "/formGovern",
+      "page": {
+        "id": "FormGovern"
+      }
+    },
+    {
+      "id": "FormAssignments",
+      "routingPattern": "/formAssignments",
+      "page": {
+        "id": "FormAssignments"
+      }
+    },
+    {
+      "id": "FormDepartments",
+      "routingPattern": "/formDepartments",
+      "page": {
+        "id": "FormDepartments"
+      }
+    },
+    {
+      "id": "FormOrgMap",
+      "routingPattern": "/formOrgMap",
+      "page": {
+        "id": "FormOrgMap"
+      }
+    },
+    {
+      "id": "FormSettings",
+      "routingPattern": "/formSettings",
+      "page": {
+        "id": "FormSettings"
+      }
+    },
+    {
+      "id": "FormPublish",
+      "routingPattern": "/formPublish",
+      "page": {
+        "id": "FormPublish"
+      }
+    },
+    {
+      "id": "FormReadiness",
+      "routingPattern": "/formReadiness",
+      "page": {
+        "id": "FormReadiness"
+      }
+    },
+    {
+      "id": "FormLibrary",
+      "routingPattern": "/formLibrary",
+      "page": {
+        "id": "FormLibrary"
+      }
+    },
+    {
+      "id": "FormOwnerDash",
+      "routingPattern": "/formOwnerDash",
+      "page": {
+        "id": "FormOwnerDash"
+      }
+    },
+    {
+      "id": "FormMyAnswers",
+      "routingPattern": "/formMyAnswers",
+      "page": {
+        "id": "FormMyAnswers"
+      }
+    },
+    {
+      "id": "FormPurge",
+      "routingPattern": "/formPurge",
+      "page": {
+        "id": "FormPurge"
+      }
+    },
+    {
+      "id": "KitDesigner",
+      "routingPattern": "/kitDesigner",
+      "page": {
+        "id": "KitDesigner"
+      }
+    },
+    {
+      "id": "KitPrepare",
+      "routingPattern": "/kitPrepare",
+      "page": {
+        "id": "KitPrepare"
+      }
+    },
+    {
+      "id": "KitWelcome",
+      "routingPattern": "/kitWelcome",
+      "page": {
+        "id": "KitWelcome"
+      }
+    },
+    {
+      "id": "KitGuide",
+      "routingPattern": "/kitGuide",
+      "page": {
+        "id": "KitGuide"
+      }
+    },
+    {
+      "id": "KitQueue",
+      "routingPattern": "/kitQueue",
+      "page": {
+        "id": "KitQueue"
+      }
+    },
+    {
+      "id": "KitPackages",
+      "routingPattern": "/kitPackages",
+      "page": {
+        "id": "KitPackages"
+      }
+    },
+    {
+      "id": "KitPeers",
+      "routingPattern": "/kitPeers",
+      "page": {
+        "id": "KitPeers"
       }
     }
   ]

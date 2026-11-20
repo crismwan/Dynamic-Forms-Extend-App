@@ -1,0 +1,55 @@
+{
+  "id": 11,
+  "name": "DynDept",
+  "label": "Dyn Department",
+  "defaultSecurityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "defaultCollection": {
+    "name": "dynDepts",
+    "label": "All Dyn Departments"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "name",
+      "label": "Name",
+      "type": "TEXT",
+      "useForDisplay": true
+    },
+    {
+      "id": 2,
+      "name": "org",
+      "label": "Organization",
+      "type": "SINGLE_INSTANCE",
+      "target": "SUPERVISORY_ORGANIZATION"
+    },
+    {
+      "id": 3,
+      "name": "orgWid",
+      "label": "Organization ID",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 4,
+      "name": "designatedBy",
+      "label": "Designated By",
+      "type": "TEXT"
+    },
+    {
+      "id": 5,
+      "name": "effectiveDate",
+      "label": "Effective Date",
+      "type": "DATE",
+      "precision": "DAY"
+    },
+    {
+      "id": 6,
+      "name": "active",
+      "label": "Active",
+      "type": "BOOLEAN"
+    }
+  ]
+}

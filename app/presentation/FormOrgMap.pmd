@@ -1,0 +1,326 @@
+{
+  "id": "FormOrgMap",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "orgs",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT workdayID, name, superiorOrganization, inactive FROM supervisoryOrganizations') %>"
+    },
+    {
+      "name": "workers",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT worker, supervisoryOrganization, jobProfile FROM workersForHCMReporting(dataSourceFilter=allActiveWorkers)') %>"
+    },
+    {
+      "name": "depts",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynDepts?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postMap0",
+        "baseUrlType": "app",
+        "url": "dynOrgMaps?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), true, 0).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), true, 0); self.data; %>"
+      },
+      {
+        "name": "patchMap0",
+        "baseUrlType": "app",
+        "url": "dynOrgMaps?bulk=true",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), false, 0).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), false, 0); self.data; %>"
+      },
+      {
+        "name": "postMap1",
+        "baseUrlType": "app",
+        "url": "dynOrgMaps?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), true, 1).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), true, 1); self.data; %>"
+      },
+      {
+        "name": "patchMap1",
+        "baseUrlType": "app",
+        "url": "dynOrgMaps?bulk=true",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), false, 1).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), false, 1); self.data; %>"
+      },
+      {
+        "name": "postMap2",
+        "baseUrlType": "app",
+        "url": "dynOrgMaps?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), true, 2).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), true, 2); self.data; %>"
+      },
+      {
+        "name": "patchMap2",
+        "baseUrlType": "app",
+        "url": "dynOrgMaps?bulk=true",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), false, 2).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), false, 2); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormOrgMap_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormOrgMap_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormOrgMap_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "countText",
+          "label": "<% presentationLabels.FormOrgMap_countText_label %>",
+          "enabled": false,
+          "value": "<% '' + (orgs.data ?? []).size() + ' supervisory organizations, ' + (workers.data ?? []).size() + ' active workers, ' + (depts.data ?? []).size() + ' departments marked' %>"
+        },
+        {
+          "type": "text",
+          "id": "planText",
+          "label": "<% presentationLabels.FormOrgMap_planText_label %>",
+          "enabled": false,
+          "value": "<% 'add ' + tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), true, 0).size() + ' and update ' + tier.mapPart(tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []), list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), false, 0).size() + ' rows (counts of the first 100 of each)' %>"
+        },
+        {
+          "type": "grid",
+          "id": "previewGrid",
+          "label": "<% presentationLabels.FormOrgMap_previewGrid_label %>",
+          "rowVariableName": "pr",
+          "rows": "<% tier.orgRows(orgs.data ?? [], depts.data ?? [], workers.data ?? []) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "nameColumn",
+              "label": "<% presentationLabels.FormOrgMap_nameColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "nameText",
+                "enabled": false,
+                "value": "<% pr.name ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "tierColumn",
+              "label": "<% presentationLabels.FormOrgMap_tierColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "tierText",
+                "enabled": false,
+                "value": "<% pr.tier ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "deptColumn",
+              "label": "<% presentationLabels.FormOrgMap_deptColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "deptText",
+                "enabled": false,
+                "value": "<% pr.deptName ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "companyColumn",
+              "label": "<% presentationLabels.FormOrgMap_companyColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "companyText",
+                "enabled": false,
+                "value": "<% pr.companyName ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "depthColumn",
+              "label": "<% presentationLabels.FormOrgMap_depthColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "depthText",
+                "enabled": false,
+                "value": "<% '' + (pr.depth ?? 0) %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "workersColumn",
+              "label": "<% presentationLabels.FormOrgMap_workersColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "workersText",
+                "enabled": false,
+                "value": "<% '' + (pr.workerCount ?? 0) %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "activeColumn",
+              "label": "<% presentationLabels.FormOrgMap_activeColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "activeText",
+                "enabled": false,
+                "value": "<% pr.active == false ? 'No' : 'Yes' %>"
+              }
+            }
+          ],
+          "doNotAdd": true,
+          "doNotRemove": true
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormGovern"
+    }
+  }
+}

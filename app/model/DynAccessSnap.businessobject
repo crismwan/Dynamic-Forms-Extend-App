@@ -1,0 +1,67 @@
+{
+  "id": 16,
+  "name": "DynAccessSnap",
+  "label": "Dyn Access Snapshot",
+  "defaultSecurityDomains": [
+    "UseDynamicForms",
+    "DynFulfil",
+    "DynGovern"
+  ],
+  "defaultCollection": {
+    "name": "dynAccessSnaps",
+    "label": "All Dyn Access Snapshots"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "snapKey",
+      "label": "Key",
+      "type": "TEXT",
+      "useForDisplay": true
+    },
+    {
+      "id": 2,
+      "name": "orgWid",
+      "label": "Organization ID",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 3,
+      "name": "jobProfile",
+      "label": "Job Profile",
+      "type": "TEXT"
+    },
+    {
+      "id": 4,
+      "name": "itemCode",
+      "label": "Kit Item",
+      "type": "TEXT"
+    },
+    {
+      "id": 5,
+      "name": "holding",
+      "label": "Peers Holding",
+      "type": "INTEGER"
+    },
+    {
+      "id": 6,
+      "name": "peers",
+      "label": "Peers",
+      "type": "INTEGER"
+    },
+    {
+      "id": 7,
+      "name": "peerRule",
+      "label": "Peer Rule",
+      "type": "TEXT"
+    },
+    {
+      "id": 8,
+      "name": "asOf",
+      "label": "As Of",
+      "type": "DATE",
+      "precision": "DAY"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "id": 15,
+  "name": "DynPackage",
+  "label": "Dyn Package",
+  "defaultSecurityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "defaultCollection": {
+    "name": "dynPackages",
+    "label": "All Dyn Packages"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "code",
+      "label": "Code",
+      "type": "TEXT",
+      "useForDisplay": true
+    },
+    {
+      "id": 2,
+      "name": "name",
+      "label": "Name",
+      "type": "TEXT"
+    },
+    {
+      "id": 3,
+      "name": "jurisdiction",
+      "label": "Jurisdiction",
+      "type": "TEXT"
+    },
+    {
+      "id": 4,
+      "name": "deliveredVersion",
+      "label": "Delivered Version",
+      "type": "INTEGER"
+    },
+    {
+      "id": 5,
+      "name": "enabled",
+      "label": "Enabled",
+      "type": "BOOLEAN"
+    },
+    {
+      "id": 6,
+      "name": "enabledBy",
+      "label": "Enabled By",
+      "type": "TEXT"
+    },
+    {
+      "id": 7,
+      "name": "enabledOn",
+      "label": "Enabled On",
+      "type": "DATE",
+      "precision": "DAY"
+    },
+    {
+      "id": 8,
+      "name": "readiness",
+      "label": "Readiness",
+      "type": "TEXT"
+    }
+  ]
+}

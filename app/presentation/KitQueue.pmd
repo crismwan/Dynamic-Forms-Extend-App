@@ -1,0 +1,214 @@
+{
+  "id": "KitQueue",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynFulfil"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "qtasks",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% 'dynKitTasks?limit=100&fulfillerGroup=' + (queryParams.group ?? 'IT').urlEncode() %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "me",
+      "baseUrlType": "workday-api",
+      "url": "common/v1/workers/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "act",
+        "baseUrlType": "app",
+        "url": "<% 'dynKitTasks/' + qIdText.value %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(actionInstanceList.value) || actionInstanceList.value[0] == 'keep' %>",
+        "onSend": "<% self.data = {:}; var a = actionInstanceList.value[0]; self.data.status = a; if (a == 'approved') { self.data.approvedBy = me.descriptor ?? ''; } if (a == 'done') { self.data.doneBy = me.descriptor ?? ''; self.data.doneOn = date:now().format('yyyy-MM-dd'); } if (a == 'declined') { self.data.reason = noteText.value ?? ''; } self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.KitQueue_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.KitQueue_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.KitQueue_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "groupText",
+          "label": "<% presentationLabels.KitQueue_groupText_label %>",
+          "enabled": false,
+          "value": "<% queryParams.group ?? 'IT' %>"
+        },
+        {
+          "type": "grid",
+          "id": "queueGrid",
+          "label": "<% presentationLabels.KitQueue_queueGrid_label %>",
+          "rowVariableName": "qr",
+          "rows": "<% (qtasks.data ?? []).filter(x => { (x.taskType ?? '') == 'access' && ['requested', 'approved'].contains(x.status ?? '') }) %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "render": "<% (qtasks.data ?? []).filter(x => { (x.taskType ?? '') == 'access' && ['requested', 'approved'].contains(x.status ?? '') }).size() > 0 %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "idColumn",
+              "label": "<% presentationLabels.KitQueue_idColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "qIdText",
+                "enabled": false,
+                "value": "<% qr.id ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "titleColumn",
+              "label": "<% presentationLabels.KitQueue_titleColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "titleText",
+                "enabled": false,
+                "value": "<% qr.title ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "forColumn",
+              "label": "<% presentationLabels.KitQueue_forColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "forText",
+                "enabled": false,
+                "value": "<% qr.hireWid ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "statusColumn",
+              "label": "<% presentationLabels.KitQueue_statusColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "statusText",
+                "enabled": false,
+                "value": "<% qr.status ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "sensColumn",
+              "label": "<% presentationLabels.KitQueue_sensColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "sensText",
+                "enabled": false,
+                "value": "<% qr.sensitivity ?? 'standard' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "srcColumn",
+              "label": "<% presentationLabels.KitQueue_srcColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "srcText",
+                "enabled": false,
+                "value": "<% (qr.source ?? '') + (empty(qr.reason) ? '' : ': ' + qr.reason) %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "actionColumn",
+              "label": "<% presentationLabels.KitQueue_actionColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "actionInstanceList",
+                "instanceList": [
+                  {
+                    "id": "keep",
+                    "descriptor": "No change"
+                  },
+                  {
+                    "id": "approved",
+                    "descriptor": "Approve"
+                  },
+                  {
+                    "id": "declined",
+                    "descriptor": "Decline"
+                  },
+                  {
+                    "id": "done",
+                    "descriptor": "Mark done"
+                  }
+                ],
+                "selectedValues": "<% ['keep'] %>",
+                "onChange": "<% (!empty(self.value) && self.value[0] == 'done' && sensText.value == 'elevated' && statusText.value != 'approved') ? self.setError('Approve an elevated item first.') : self.clearError() %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "noteColumn",
+              "label": "<% presentationLabels.KitQueue_noteColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "noteText",
+                "value": "<% '' %>"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormGovern"
+    }
+  }
+}

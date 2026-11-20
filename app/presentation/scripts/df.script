@@ -53,6 +53,85 @@ var overMax = function(d, key, val) {
   for (var x : (d ?? [])) { if ((x.pKey ?? '') == key && !empty(key) && (x.rowNumber ?? 0) > top) { top = x.rowNumber; } }
   top == 0 ? 'na' : ((!empty(val) && ('' + val).isNumber() && ('' + val).toDecimal() > top) ? ('At most ' + top + ' here; only ' + top + ' can be entered.') : 'ok');
 };
+// ---- composition (2026-11-20): a composed form (Dyn Form kind composed) lists its pinned blocks as
+// "tierRank:code,..."; the page loads each block's questions (b1..b6) and this puts them in one list: enterprise first,
+// then department, then team, each block's own order kept. A library key asked by an earlier block is not asked again.
+// Reusable answers still valid (same location and job as when given) fill the question in, and the label says so;
+// questions that prefill from Workday come first with "Check:" so the person confirms them.
+var blk = function(cmp, n) {
+  var b = ('' + (((cmp ?? []).size() > 0 ? cmp[0].blocks : '') ?? '')).split(',');
+  var raw = b.size() >= n ? ('' + b.get(n - 1)).trim() : '';
+  raw.contains(':') ? raw.substringAfter(':') : raw;
+};
+
+var rank = function(cmp, n) {
+  var b = ('' + (((cmp ?? []).size() > 0 ? cmp[0].blocks : '') ?? '')).split(',');
+  var raw = b.size() >= n ? ('' + b.get(n - 1)).trim() : '';
+  raw.contains(':') ? raw.substringBefore(':').toInt() : n;
+};
+
+var tierName = function(r) {
+  r == 1 ? 'Enterprise' : (r == 2 ? 'Department' : 'Team');
+};
+
+// the reuse context: a reusable answer stops being offered when the person's location or job title changes
+var ctxOf = function(w) {
+  var loc = empty(w) ? {:} : (w.location ?? {:});
+  'loc=' + (loc.id ?? '') + ';job=' + (empty(w) ? '' : (w.businessTitle ?? ''));
+};
+
+var ctx2 = function(x, w) {
+  ctxOf(w);
+};
+
+var whoId = function(x, w) {
+  empty(w) ? '' : ('' + (w.id ?? ''));
+};
+
+var reuseOf = function(prior, key, ctx, today) {
+  var hit = {:};
+  for (var a : prior ?? []) {
+    var vu = ('' + (a.validUntil ?? '')).replace('-', '');
+    if ((a.qKey ?? '') == key && ('' + (a.contextKey ?? '')) == ctx && vu.length() >= 8 && vu.substring(0, 8).toInt() >= today) { hit = a; }
+  }
+  hit;
+};
+
+var merge = function(own, cmp, parts, prior, w) {
+  var ctx = ctxOf(w);
+  var out = [];
+  var seen = '|';
+  var today = date:now().format('yyyyMMdd').toInt();
+  var lists = (cmp ?? []).size() > 0 && !empty(cmp[0].blocks) ? parts : [own ?? []];
+  var n = 0;
+  for (var p : lists) {
+    n = n + 1;
+    var r = (cmp ?? []).size() > 0 && !empty(cmp[0].blocks) ? rank(cmp, n) : 0;
+    for (var x : sorted(p)) {
+      var lib = '' + (x.libraryKey ?? '');
+      if (empty(lib) || !seen.contains('|' + lib + '|')) {
+        if (!empty(lib)) { seen = seen + lib + '|'; }
+        var m = {:};
+        m.addAll(x);
+        var pre1 = !empty(x.prefill) && x.prefill != 'noPrefill';
+        m.put('sortOrder', (pre1 ? 0 : (r * 10000 + n * 1000)) + (x.sortOrder ?? 0));
+        if (r > 0) { m.put('tier', tierName(r)); }
+        if (pre1) { m.put('qLabel', 'Check: ' + (x.qLabel ?? '')); }
+        if (x.reusable == true) {
+          var hit = reuseOf(prior, x.qKey ?? '', ctx, today);
+          if (!empty(hit.qKey)) {
+            m.put('reuseText', hit.textValue ?? '');
+            m.put('reuseNum', hit.numberValue);
+            m.put('qLabel', (x.qLabel ?? '') + ' (from your earlier answer, kept until ' + ('' + (hit.validUntil ?? '')).truncate(10) + '; change it if it is no longer right)');
+          }
+        }
+        out.add(m);
+      }
+    }
+  }
+  out;
+};
+
 var expand = function(d, s1, s2, s3) {
   var kids = [s1 ?? [], s2 ?? [], s3 ?? []];
   var out = [];
@@ -112,8 +191,15 @@ var ll = function(d, i, lang) {
   (empty(lang) || raw.indexOf(tag) < 0) ? l(d, i) : raw.substringAfter(tag).substringBefore('"');
 };
 
+// storage class (2026-11-20): General / Confidential / Restricted; the old confidential flag means Confidential
+var cls = function(d, i) {
+  var x = q(d, i);
+  var c = ('' + (x.classification ?? '')).lowerCase();
+  c == 'confidential' ? 'Confidential' : (c == 'restricted' ? 'Restricted' : (x.confidential == true ? 'Confidential' : 'General'));
+};
+
 var sec = function(d, i) {
-  q(d, i).confidential == true;
+  cls(d, i) != 'General';
 };
 
 var h = function(d, i) {
@@ -209,6 +295,31 @@ var answers = function(d, ans, responseKey, formCode) {
   out;
 };
 
+// one storage class of the answers lanswers built (General -> Dyn Answer, Confidential -> Dyn Answer Confidential,
+// Restricted -> Dyn Answer Restricted); a protected value moves from secretText to textValue in its own object
+var byCls = function(rows, c, subj, ctx) {
+  var out = [];
+  for (var a : rows ?? []) {
+    if (('' + (a.cls ?? 'General')) == c) {
+      var m = {:};
+      for (var f : ['responseKey', 'formCode', 'qKey', 'rowNumber', 'textValue', 'numberValue', 'dateValue', 'refDescriptor', 'tier', 'source']) {
+        if (a.get(f) != null) { m.put(f, a.get(f)); }
+      }
+      if (c == 'General') {
+        for (var g : ['refId', 'organization', 'position', 'worker']) { if (a.get(g) != null) { m.put(g, a.get(g)); } }
+      } else {
+        if (a.secretText != null) { m.put('textValue', a.secretText); }
+      }
+      m.put('subjectWid', subj ?? '');
+      m.put('contextKey', ctx ?? '');
+      m.put('answeredOn', date:now().format('yyyy-MM-dd'));
+      if ((a.vm ?? 0) > 0) { m.put('validUntil', date:now().plusMonths(a.vm).format('yyyy-MM-dd')); }
+      out.add(m);
+    }
+  }
+  out;
+};
+
 var qmap = function(code, n, key, ty, label, required, opts, showKey, showOp, showValue, calc, help) {
   var m = {:};
   m.put('formCode', code);
@@ -268,10 +379,15 @@ var rxErr = function(d, i, v) {
   (empty(rx) || empty(v)) ? '' : (validate:match(rx, '' + v) ? '' : (empty(msg) ? 'Not in the expected format.' : msg));
 };
 
+var preN = function(d, i) {
+  q(d, i).reuseNum;
+};
+
 var pre = function(d, i, w) {
+  var rt = '' + (q(d, i).reuseText ?? '');
   var key = q(d, i).prefill ?? '';
   var loc = empty(w) ? {:} : (w.location ?? {:});
-  empty(w) ? '' : (key == 'name' ? (w.descriptor ?? '') : (key == 'title' ? (w.businessTitle ?? '') : (key == 'location' ? (loc.descriptor ?? '') : (key == 'email' ? (w.primaryWorkEmail ?? '') : ''))));
+  !empty(rt) ? rt : (empty(w) ? '' : (key == 'name' ? (w.descriptor ?? '') : (key == 'title' ? (w.businessTitle ?? '') : (key == 'location' ? (loc.descriptor ?? '') : (key == 'email' ? (w.primaryWorkEmail ?? '') : '')))));
 };
 
 var preSel = function(d, i, w) {
@@ -390,6 +506,10 @@ var lanswers = function(d, rows, responseKey, formCode, ans) {
     // a confidential answer of any type goes only to secretText (the DynConfidential field), never to the open
     // value fields that the gate, comments and reports read (2026-11-19: numbers, dates and yes/no used to bypass it)
     var hide = sec(d, i);
+    m.put('cls', cls(d, i));
+    m.put('tier', q(d, i).tier ?? '');
+    m.put('source', !empty(q(d, i).reuseText) || q(d, i).reuseNum != null ? 'reused' : ((!empty(q(d, i).prefill) && q(d, i).prefill != 'noPrefill') ? 'prefill' : 'asked'));
+    m.put('vm', q(d, i).reusable == true ? (q(d, i).validMonths ?? 12) : 0);
     if (kind == 'text' && !empty(row[0])) { m.put(hide ? 'secretText' : 'textValue', '' + row[0]); out.add(m); }
     if (kind == 'number' && !empty(row[5])) { if (hide) { m.put('secretText', '' + row[5]); } else { m.put('numberValue', row[5]); } out.add(m); }
     if (kind == 'date' && !empty(row[6])) { m.put(hide ? 'secretText' : 'dateValue', row[6].format('yyyy-MM-dd')); out.add(m); }
@@ -467,7 +587,7 @@ var cpPlan = function(src, picked, tgt, code, mode, sizes) {
   for (var x : rows) {
     i = i + 1;
     var m = {:};
-    for (var f : ['qType', 'qLabel', 'help', 'required', 'qOptions', 'showOp', 'showValue', 'lookup', 'prefill', 'regex', 'regexMessage', 'dataSource', 'sourceField', 'targetField', 'params', 'labels', 'confidential']) { var val = x.get(f); if (val != null) { m.put(f, val); } }
+    for (var f : ['qType', 'qLabel', 'help', 'required', 'qOptions', 'showOp', 'showValue', 'lookup', 'prefill', 'regex', 'regexMessage', 'dataSource', 'sourceField', 'targetField', 'params', 'labels', 'confidential', 'classification', 'libraryKey', 'linkMode', 'reusable', 'validMonths', 'resetsWhen', 'origin', 'overrides']) { var val = x.get(f); if (val != null) { m.put(f, val); } }
     m.put('formCode', code);
     m.put('sortOrder', base + i);
     m.put('qKey', ren.get(x.qKey ?? ''));
@@ -619,5 +739,5 @@ var ansQ = function(keys) {
 {
   "q": q, "k": k, "t": t, "l": l, "ll": ll, "sec": sec, "h": h, "wi": wi, "req": req, "c": c, "str": str, "show": show, "v": v, "r": r, "o": o,
   "pick": pick, "num": num, "shownKey": shownKey, "calcVal": calcVal, "answers": answers, "qmap": qmap, "sample": sample,
-  "lk": lk, "uses": uses, "wk": wk, "rxErr": rxErr, "pick2": pick2, "wi2": wi2, "pre": pre, "preSel": preSel, "posName": posName, "ref2": ref2, "pItem": pItem, "pKey": pKey, "pGroups": pGroups, "pRoot": pRoot, "pLevel": pLevel, "pFind": pFind, "opts": opts, "clean": clean, "wmap": wmap, "ref": ref, "lanswers": lanswers, "resQ": resQ, "ansQ": ansQ, "widOf": widOf, "formWid": formWid, "statusWid": statusWid, "subjWid": subjWid, "subjName": subjName, "qWid": qWid, "pending": pending, "cap": cap, "tag": tag, "copyQ": copyQ, "newKey": newKey, "fRow": fRow, "family": family, "cpCode": cpCode, "cpVersion": cpVersion, "cpPlan": cpPlan, "cpExport": cpExport, "cpImport": cpImport, "childQ": childQ, "par": par, "repQ": repQ, "sw": sw, "rq": rq, "subCode": subCode, "overMax": overMax, "expand": expand, "ex": expand, "cond": cond, "nextForm": nextForm
+  "lk": lk, "uses": uses, "wk": wk, "rxErr": rxErr, "pick2": pick2, "wi2": wi2, "pre": pre, "preSel": preSel, "posName": posName, "ref2": ref2, "pItem": pItem, "pKey": pKey, "pGroups": pGroups, "pRoot": pRoot, "pLevel": pLevel, "pFind": pFind, "opts": opts, "clean": clean, "wmap": wmap, "ref": ref, "lanswers": lanswers, "resQ": resQ, "ansQ": ansQ, "widOf": widOf, "formWid": formWid, "statusWid": statusWid, "subjWid": subjWid, "subjName": subjName, "qWid": qWid, "pending": pending, "cap": cap, "tag": tag, "copyQ": copyQ, "newKey": newKey, "fRow": fRow, "family": family, "cpCode": cpCode, "cpVersion": cpVersion, "cpPlan": cpPlan, "cpExport": cpExport, "cpImport": cpImport, "childQ": childQ, "par": par, "repQ": repQ, "sw": sw, "rq": rq, "subCode": subCode, "overMax": overMax, "expand": expand, "ex": expand, "cond": cond, "nextForm": nextForm, "cls": cls, "blk": blk, "rank": rank, "merge": merge, "ctxOf": ctxOf, "byCls": byCls, "preN": preN, "tierName": tierName, "whoId": whoId, "ctx2": ctx2
 }

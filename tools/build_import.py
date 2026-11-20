@@ -13,8 +13,9 @@ APP = os.path.join(ROOT, 'app')
 DOM = ["UseDynamicForms"]
 FAIL = [{"code": 400}, {"code": 403}]
 SOURCE = "developertoolkitappv1_kwswrv"
-FORM_FIELDS = [f["name"] for f in json.load(open(os.path.join(APP, 'model', 'DynForm.businessobject')))["fields"]]
-Q_FIELDS = [f["name"] for f in json.load(open(os.path.join(APP, 'model', 'DynQuestion.businessobject')))["fields"]]
+# the fields the source app (Extend Toolkit) has: later fields (tiered ownership, 2026-11-20) exist only here
+FORM_FIELDS = [f["name"] for f in json.load(open(os.path.join(APP, 'model', 'DynForm.businessobject')))["fields"] if f["id"] <= 15]
+Q_FIELDS = [f["name"] for f in json.load(open(os.path.join(APP, 'model', 'DynQuestion.businessobject')))["fields"] if f["id"] <= 22]
 INTS = {"version", "sortOrder"}
 BOOLS = {"requestFramework", "required", "confidential"}
 CHUNKS = 12

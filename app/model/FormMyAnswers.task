@@ -1,0 +1,10 @@
+{
+  "id": 14,
+  "name": "FormMyAnswers",
+  "label": "My Reusable Answers",
+  "securityDomains": [
+    "DynFill",
+    "UseDynamicForms"
+  ],
+  "routePath": "/formMyAnswers"
+}

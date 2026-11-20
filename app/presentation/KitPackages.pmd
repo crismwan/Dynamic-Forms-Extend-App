@@ -1,0 +1,261 @@
+{
+  "id": "KitPackages",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "pkgs",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynPackages?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "items",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynKitItems?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "me",
+      "baseUrlType": "workday-api",
+      "url": "common/v1/workers/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "script": "<%\n  var ticked = function() {\n    var out = [];\n    for (var r : pkgGrid.rows) { if (r.childrenMap.enableColumn.value == true) { out.add(r.childrenMap.codeColumn.value); } }\n    out;\n  };\n%>",
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postPkg",
+        "baseUrlType": "app",
+        "url": "dynPackages",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% !empty(pidText.value) || enableCheckBox.value != true %>",
+        "onSend": "<% self.data = {:}; self.data.code = codeText.value; self.data.name = nameText.value; self.data.jurisdiction = jurText.value; self.data.deliveredVersion = ('' + verText.value).toInt(); self.data.enabled = true; self.data.enabledBy = me.descriptor ?? ''; self.data.enabledOn = date:now().format('yyyy-MM-dd'); self.data.readiness = 'Installed'; self.data; %>"
+      },
+      {
+        "name": "patchPkg",
+        "baseUrlType": "app",
+        "url": "<% 'dynPackages/' + pidText.value %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(pidText.value) %>",
+        "onSend": "<% self.data = {:}; self.data.enabled = enableCheckBox.value == true; self.data.enabledBy = me.descriptor ?? ''; self.data.enabledOn = date:now().format('yyyy-MM-dd'); self.data; %>"
+      },
+      {
+        "name": "installItems",
+        "baseUrlType": "app",
+        "url": "dynKitItems?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.pkgInstall(ticked(), items.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []])).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.pkgInstall(ticked(), items.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []])); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.KitPackages_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.KitPackages_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.KitPackages_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "pkgGrid",
+          "label": "<% presentationLabels.KitPackages_pkgGrid_label %>",
+          "rowVariableName": "pr",
+          "rows": "<% tier.pkgRows(pkgs.data ?? [], items.data ?? []) %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "codeColumn",
+              "label": "<% presentationLabels.KitPackages_codeColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "codeText",
+                "enabled": false,
+                "value": "<% pr.code ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "pidColumn",
+              "label": "<% presentationLabels.KitPackages_pidColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "pidText",
+                "enabled": false,
+                "value": "<% pr.id ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "nameColumn",
+              "label": "<% presentationLabels.KitPackages_nameColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "nameText",
+                "enabled": false,
+                "value": "<% pr.name ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "jurColumn",
+              "label": "<% presentationLabels.KitPackages_jurColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "jurText",
+                "enabled": false,
+                "value": "<% pr.jurisdiction ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "verColumn",
+              "label": "<% presentationLabels.KitPackages_verColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "verText",
+                "enabled": false,
+                "value": "<% pr.version ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "statusColumn",
+              "label": "<% presentationLabels.KitPackages_statusColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "statusText",
+                "enabled": false,
+                "value": "<% pr.status ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "enableColumn",
+              "label": "<% presentationLabels.KitPackages_enableColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "enableCheckBox",
+                "value": "<% pr.enabled ?? false %>"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormGovern"
+    }
+  }
+}

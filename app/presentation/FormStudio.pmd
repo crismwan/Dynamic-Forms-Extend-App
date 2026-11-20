@@ -136,9 +136,20 @@
                 "type": "text",
                 "id": "statusText",
                 "enabled": false,
-                "value": "<% (fr.status ?? '').lowerCase() == 'approved' ? '✓ Approved' : ((fr.status ?? '').lowerCase() == 'retired' ? '✕ Retired' : '○ Draft') %>"
+                "value": "<% ['approved', 'published'].contains((fr.status ?? '').lowerCase()) ? '✓ ' + fr.status : (['retired', 'superseded'].contains((fr.status ?? '').lowerCase()) ? '✕ ' + fr.status : '○ ' + (fr.status ?? 'Draft')) %>"
               },
               "sortableAndFilterable": "true"
+            },
+            {
+              "type": "column",
+              "columnId": "tierColumn",
+              "label": "<% presentationLabels.FormStudio_tierColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "tierText",
+                "enabled": false,
+                "value": "<% (fr.kind ?? '') == 'composed' ? 'Composed: ' + (fr.blocks ?? '') : ((empty(fr.ownerOrg) ? '' : ('' + fr.ownerOrg.descriptor + ', ')) + (fr.tier ?? '')) %>"
+              }
             },
             {
               "type": "column",
@@ -258,6 +269,23 @@
                 "action": "AUXILIARY",
                 "taskReference": {
                   "taskId": "DynFormResults",
+                  "parameterBindings": {
+                    "form": "<% fr.code %>"
+                  }
+                }
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "publishColumn",
+              "label": "<% presentationLabels.FormStudio_publishColumn_label %>",
+              "cellTemplate": {
+                "type": "button",
+                "id": "publishButton",
+                "label": "<% presentationLabels.FormStudio_publishButton_label %>",
+                "action": "AUXILIARY",
+                "taskReference": {
+                  "taskId": "FormPublish",
                   "parameterBindings": {
                     "form": "<% fr.code %>"
                   }

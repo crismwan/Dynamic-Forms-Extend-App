@@ -1,0 +1,117 @@
+{
+  "id": "FormLibrary",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynAuthor",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "qall",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT formCode, qKey, qLabel, libraryKey, classification, reusable, validMonths FROM dynamicforms_kwswrv_dynQuestions WHERE libraryKey is not empty') %>"
+    }
+  ],
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormLibrary_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormLibrary_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormLibrary_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "libGrid",
+          "label": "<% presentationLabels.FormLibrary_libGrid_label %>",
+          "rowVariableName": "lr",
+          "rows": "<% tier.libRows(qall.data ?? [], []) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "keyColumn",
+              "label": "<% presentationLabels.FormLibrary_keyColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "keyText",
+                "enabled": false,
+                "value": "<% lr.key ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "labelColumn",
+              "label": "<% presentationLabels.FormLibrary_labelColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "labelText",
+                "enabled": false,
+                "value": "<% lr.label ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "clsColumn",
+              "label": "<% presentationLabels.FormLibrary_clsColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "clsText",
+                "enabled": false,
+                "value": "<% lr.cls ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "reuseColumn",
+              "label": "<% presentationLabels.FormLibrary_reuseColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "reuseText",
+                "enabled": false,
+                "value": "<% lr.reusable ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "blocksColumn",
+              "label": "<% presentationLabels.FormLibrary_blocksColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "blocksText",
+                "enabled": false,
+                "value": "<% lr.blocks ?? '' %>"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

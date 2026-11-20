@@ -1,0 +1,154 @@
+{
+  "id": 14,
+  "name": "DynKitTask",
+  "label": "Dyn Kit Task",
+  "defaultSecurityDomains": [
+    "UseDynamicForms",
+    "DynFulfil"
+  ],
+  "defaultCollection": {
+    "name": "dynKitTasks",
+    "label": "All Dyn Kit Tasks"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "key",
+      "label": "Key",
+      "type": "TEXT",
+      "useForDisplay": true,
+      "enableIndex": true
+    },
+    {
+      "id": 2,
+      "name": "taskType",
+      "label": "Task Type",
+      "type": "TEXT"
+    },
+    {
+      "id": 3,
+      "name": "newHire",
+      "label": "New Hire",
+      "type": "SINGLE_INSTANCE",
+      "target": "WORKER"
+    },
+    {
+      "id": 4,
+      "name": "hireWid",
+      "label": "New Hire ID",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 5,
+      "name": "hirePerson",
+      "label": "New Hire Person",
+      "type": "TEXT"
+    },
+    {
+      "id": 6,
+      "name": "itemCode",
+      "label": "Kit Item",
+      "type": "TEXT"
+    },
+    {
+      "id": 7,
+      "name": "title",
+      "label": "Title",
+      "type": "TEXT"
+    },
+    {
+      "id": 8,
+      "name": "managerNote",
+      "label": "Manager Note",
+      "type": "TEXT"
+    },
+    {
+      "id": 9,
+      "name": "status",
+      "label": "Status",
+      "type": "TEXT"
+    },
+    {
+      "id": 10,
+      "name": "requestedBy",
+      "label": "Requested By",
+      "type": "TEXT"
+    },
+    {
+      "id": 11,
+      "name": "approvedBy",
+      "label": "Approved By",
+      "type": "TEXT"
+    },
+    {
+      "id": 12,
+      "name": "doneBy",
+      "label": "Done By",
+      "type": "TEXT"
+    },
+    {
+      "id": 13,
+      "name": "dueOffset",
+      "label": "Due Offset Days",
+      "type": "INTEGER"
+    },
+    {
+      "id": 14,
+      "name": "doneOn",
+      "label": "Done On",
+      "type": "DATE",
+      "precision": "DAY"
+    },
+    {
+      "id": 15,
+      "name": "reason",
+      "label": "Reason",
+      "type": "TEXT"
+    },
+    {
+      "id": 16,
+      "name": "fulfillerGroup",
+      "label": "Fulfiller Group",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 17,
+      "name": "bpEvent",
+      "label": "Business Process Event",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 18,
+      "name": "source",
+      "label": "Source",
+      "type": "TEXT"
+    },
+    {
+      "id": 19,
+      "name": "sensitivity",
+      "label": "Sensitivity",
+      "type": "TEXT"
+    },
+    {
+      "id": 20,
+      "name": "tier",
+      "label": "Tier",
+      "type": "TEXT"
+    },
+    {
+      "id": 21,
+      "name": "orgWid",
+      "label": "Organization ID",
+      "type": "TEXT"
+    },
+    {
+      "id": 22,
+      "name": "jobProfile",
+      "label": "Job Profile",
+      "type": "TEXT"
+    }
+  ]
+}

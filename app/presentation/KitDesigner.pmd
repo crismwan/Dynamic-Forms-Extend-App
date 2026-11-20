@@ -1,0 +1,517 @@
+{
+  "id": "KitDesigner",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynAuthor"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "items",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynKitItems?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "me",
+      "baseUrlType": "workday-api",
+      "url": "common/v1/workers/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postK",
+        "baseUrlType": "app",
+        "url": "dynKitItems",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% !empty(kIdText.value) && copyCheckBox.value != true %>"
+      },
+      {
+        "name": "patchK",
+        "baseUrlType": "app",
+        "url": "<% 'dynKitItems/' + kIdText.value %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(kIdText.value) || copyCheckBox.value == true || originText.value == 'Delivered' %>"
+      },
+      {
+        "name": "deleteK",
+        "baseUrlType": "app",
+        "url": "<% 'dynKitItems/' + kIdText.value %>",
+        "httpMethod": "DELETE",
+        "authType": "sso"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.KitDesigner_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.KitDesigner_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.KitDesigner_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "kitGrid",
+          "label": "<% presentationLabels.KitDesigner_kitGrid_label %>",
+          "rowVariableName": "kr",
+          "deleteEndPoint": "deleteK",
+          "rows": "<% items.data ?? [] %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "idColumn",
+              "label": "<% presentationLabels.KitDesigner_idColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "kIdText",
+                "enabled": false,
+                "value": "<% kr.id ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "originColumn",
+              "label": "<% presentationLabels.KitDesigner_originColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "originText",
+                "enabled": false,
+                "value": "<% kr.origin ?? 'Customer' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% copyCheckBox.value == true ? 'Customer' : (originText.value ?? 'Customer') %>",
+                    "valueOutBinding": "postK.origin"
+                  },
+                  {
+                    "value": "<% copyCheckBox.value == true ? 'Customer' : (originText.value ?? 'Customer') %>",
+                    "valueOutBinding": "patchK.origin"
+                  },
+                  {
+                    "value": "<% copyCheckBox.value == true ? codeText.value : null %>",
+                    "valueOutBinding": "postK.overrides"
+                  },
+                  {
+                    "value": "<% true %>",
+                    "valueOutBinding": "postK.active"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "copyColumn",
+              "label": "<% presentationLabels.KitDesigner_copyColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "copyCheckBox",
+                "value": "<% false %>",
+                "enabled": "<% (kr.origin ?? '') == 'Delivered' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "codeColumn",
+              "label": "<% presentationLabels.KitDesigner_codeColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "codeText",
+                "value": "<% kr.code ?? '' %>",
+                "enabled": "<% !((kr.origin ?? '') == 'Delivered') %>",
+                "valuesOut": [
+                  {
+                    "value": "<% copyCheckBox.value == true ? (self.value ?? '') + '-C' : self.value %>",
+                    "valueOutBinding": "postK.code"
+                  },
+                  {
+                    "value": "<% copyCheckBox.value == true ? (self.value ?? '') + '-C' : self.value %>",
+                    "valueOutBinding": "patchK.code"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "typeColumn",
+              "label": "<% presentationLabels.KitDesigner_typeColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "typeInstanceList",
+                "instanceList": [
+                  {
+                    "id": "welcome",
+                    "descriptor": "Welcome text"
+                  },
+                  {
+                    "id": "learning",
+                    "descriptor": "Learning step"
+                  },
+                  {
+                    "id": "access",
+                    "descriptor": "Access item"
+                  }
+                ],
+                "selectedValues": "<% [kr.itemType ?? 'learning'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'learning' : self.value[0] %>",
+                    "valueOutBinding": "postK.itemType"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'learning' : self.value[0] %>",
+                    "valueOutBinding": "patchK.itemType"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "titleColumn",
+              "label": "<% presentationLabels.KitDesigner_titleColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "titleText",
+                "value": "<% kr.title ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postK.title"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchK.title"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "bodyColumn",
+              "label": "<% presentationLabels.KitDesigner_bodyColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "bodyText",
+                "value": "<% kr.body ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postK.body"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchK.body"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "ownerColumn",
+              "label": "<% presentationLabels.KitDesigner_ownerColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "ownerInstanceList",
+                "values": "<% tier.orgPick(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []])) %>",
+                "selectedValuesAndDescriptors": "<% tier.orgSel(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), kr.ownerWid) %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? '' : self.value[0] %>",
+                    "valueOutBinding": "postK.ownerWid"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? '' : self.value[0] %>",
+                    "valueOutBinding": "patchK.ownerWid"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? null : {'id': self.value[0]} %>",
+                    "valueOutBinding": "postK.ownerOrg"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? null : {'id': self.value[0]} %>",
+                    "valueOutBinding": "patchK.ownerOrg"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? '' : tier.tierOf(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), self.value[0]) %>",
+                    "valueOutBinding": "postK.tier"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? '' : tier.tierOf(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), self.value[0]) %>",
+                    "valueOutBinding": "patchK.tier"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "scopeColumn",
+              "label": "<% presentationLabels.KitDesigner_scopeColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "scopeInstanceList",
+                "instanceList": [
+                  {
+                    "id": "org",
+                    "descriptor": "Org only"
+                  },
+                  {
+                    "id": "subs",
+                    "descriptor": "Org + subordinates"
+                  }
+                ],
+                "selectedValues": "<% [kr.scope ?? 'subs'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'subs' : self.value[0] %>",
+                    "valueOutBinding": "postK.scope"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'subs' : self.value[0] %>",
+                    "valueOutBinding": "patchK.scope"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "dueColumn",
+              "label": "<% presentationLabels.KitDesigner_dueColumn_label %>",
+              "cellTemplate": {
+                "type": "number",
+                "id": "dueNumber",
+                "value": "<% kr.dueOffset ?? 0 %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postK.dueOffset"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchK.dueOffset"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "groupColumn",
+              "label": "<% presentationLabels.KitDesigner_groupColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "groupText",
+                "value": "<% kr.fulfillerGroup ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postK.fulfillerGroup"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchK.fulfillerGroup"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "sensColumn",
+              "label": "<% presentationLabels.KitDesigner_sensColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "sensInstanceList",
+                "instanceList": [
+                  {
+                    "id": "standard",
+                    "descriptor": "Standard"
+                  },
+                  {
+                    "id": "elevated",
+                    "descriptor": "Elevated (needs governance)"
+                  }
+                ],
+                "selectedValues": "<% [kr.sensitivity ?? 'standard'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'standard' : self.value[0] %>",
+                    "valueOutBinding": "postK.sensitivity"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'standard' : self.value[0] %>",
+                    "valueOutBinding": "patchK.sensitivity"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "statusColumn",
+              "label": "<% presentationLabels.KitDesigner_statusColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "statusInstanceList",
+                "instanceList": [
+                  {
+                    "id": "kitDraft",
+                    "descriptor": "Draft"
+                  },
+                  {
+                    "id": "kitPublished",
+                    "descriptor": "Published"
+                  }
+                ],
+                "selectedValues": "<% [(kr.status ?? 'Draft') == 'Published' ? 'kitPublished' : 'kitDraft'] %>",
+                "onChange": "<% (!empty(self.value) && self.value[0] == 'kitPublished' && !empty(sensInstanceList.value) && sensInstanceList.value[0] == 'elevated' && govCheckBox.value != true) ? self.setError('An elevated access item needs governance approval: tick Governance.') : self.clearError() %>",
+                "valuesOut": [
+                  {
+                    "value": "<% (!empty(self.value) && self.value[0] == 'kitPublished') ? 'Published' : 'Draft' %>",
+                    "valueOutBinding": "postK.status"
+                  },
+                  {
+                    "value": "<% (!empty(self.value) && self.value[0] == 'kitPublished') ? 'Published' : 'Draft' %>",
+                    "valueOutBinding": "patchK.status"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "govColumn",
+              "label": "<% presentationLabels.KitDesigner_govColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "govCheckBox",
+                "value": "<% !empty(kr.approvedBy) %>",
+                "onChange": "<% statusInstanceList.clearError() %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value == true ? (me.descriptor ?? 'governance') : '' %>",
+                    "valueOutBinding": "postK.approvedBy"
+                  },
+                  {
+                    "value": "<% self.value == true ? (me.descriptor ?? 'governance') : '' %>",
+                    "valueOutBinding": "patchK.approvedBy"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "processColumn",
+              "label": "<% presentationLabels.KitDesigner_processColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "processInstanceList",
+                "values": "<% tier.procList() %>",
+                "selectedValues": "<% [kr.processType ?? 'Onboarding'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'Onboarding' : self.value[0] %>",
+                    "valueOutBinding": "postK.processType"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'Onboarding' : self.value[0] %>",
+                    "valueOutBinding": "patchK.processType"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormGovern"
+    }
+  }
+}

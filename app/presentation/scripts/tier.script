@@ -1,0 +1,455 @@
+var cnt = function(sortedList, key) {
+  var i = sortedList.indexOf(key);
+  i < 0 ? 0 : sortedList.lastIndexOf(key) - i + 1;
+};
+
+var first = function(d) {
+  (d ?? []).size() > 0 ? d[0] : {:};
+};
+
+var procName = function(code) {
+  var m = { 'TimeOff': 'Request Time Off', 'ChangeJob': 'Change Job', 'Onboarding': 'Onboarding', 'Termination': 'Termination', 'Leave': 'Request Leave of Absence', 'Campaign': 'Extend campaign (yearly)' };
+  m.containsKey(code ?? '') ? m.get(code) : ('' + (code ?? ''));
+};
+
+var procList = function() {
+  var out = [];
+  var m = { 'TimeOff': 'Request Time Off', 'ChangeJob': 'Change Job', 'Onboarding': 'Onboarding', 'Termination': 'Termination', 'Leave': 'Request Leave of Absence', 'Campaign': 'Extend campaign (yearly)' };
+  for (var k : m.keys()) { out.add({ 'id': k, 'descriptor': m.get(k) }); }
+  out;
+};
+
+// the org map, built from Workday's supervisory organizations, the departments marked here and the active workers:
+// path "|top|...|org|", depth, department (the nearest marked organization at or above), company (the top
+// organization), tier (Enterprise = no superior, Department = marked, Team = the rest), workers in the org
+var orgRows = function(orgs, depts, workers) {
+  var ids = (orgs ?? []).map(o => { '' + (o.workdayID ?? '') });
+  var pars = (orgs ?? []).map(o => { empty(o.superiorOrganization) ? '' : ('' + (o.superiorOrganization.id ?? '')) });
+  var names = (orgs ?? []).map(o => { '' + (o.name ?? '') });
+  var dset = '|' + (depts ?? []).filter(d => { d.active != false }).map(d => { '' + (d.orgWid ?? '') }).join('|') + '|';
+  var wk = (workers ?? []).map(w => { empty(w.supervisoryOrganization) ? '' : ('' + (w.supervisoryOrganization.id ?? '')) }).sort();
+  var today = date:now().format('yyyy-MM-dd');
+  var out = [];
+  var n = 0;
+  for (var o : orgs ?? []) {
+    var self1 = ids.get(n);
+    var chain = [self1];
+    var cur = pars.get(n);
+    for (var g : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) {
+      if (!empty(cur) && ids.indexOf(cur) >= 0 && !chain.contains(cur)) { chain.add(cur); cur = pars.get(ids.indexOf(cur)); }
+    }
+    var path = '|';
+    var dw = '';
+    for (var c : chain) {
+      path = '|' + c + path;
+      if (empty(dw) && dset.contains('|' + c + '|')) { dw = c; }
+    }
+    var top = chain.get(chain.size() - 1);
+    var isTop = empty(pars.get(n)) || ids.indexOf(pars.get(n)) < 0;
+    var m = {:};
+    m.put('orgWid', self1);
+    m.put('name', names.get(n));
+    m.put('org', { 'id': self1 });
+    m.put('parentWid', pars.get(n));
+    m.put('depth', chain.size());
+    m.put('path', path);
+    m.put('deptWid', dw);
+    m.put('deptName', empty(dw) ? '' : names.get(ids.indexOf(dw)));
+    m.put('companyName', names.get(ids.indexOf(top)));
+    m.put('tier', isTop ? 'Enterprise' : (dset.contains('|' + self1 + '|') ? 'Department' : 'Team'));
+    m.put('active', o.inactive != true);
+    m.put('workerCount', cnt(wk, self1));
+    m.put('refreshedOn', today);
+    out.add(m);
+    n = n + 1;
+  }
+  out;
+};
+
+// rows to create and rows to update (existing org map rows keyed by orgWid), in chunks of 100 for the bulk API
+var mapPart = function(rows, existing, wantNew, part) {
+  var ex = (existing ?? []).map(e => { '' + (e.orgWid ?? '') });
+  var sel = [];
+  for (var r : rows ?? []) {
+    var at = ex.indexOf(r.orgWid);
+    if (wantNew && at < 0) { sel.add(r); }
+    if (!wantNew && at >= 0) { var m = {:}; m.addAll(r); m.remove('org'); m.put('id', existing.get(at).id); sel.add(m); }
+  }
+  var lo = part * 100;
+  var hi = lo + 100 > sel.size() ? sel.size() : lo + 100;
+  lo < sel.size() ? sel.subList(lo, hi) : [];
+};
+
+var mapOf = function(map, wid) {
+  var hit = {:};
+  for (var r : map ?? []) { if (('' + (r.orgWid ?? '')) == ('' + (wid ?? ''))) { hit = r; } }
+  hit;
+};
+
+var tierOf = function(map, wid) {
+  mapOf(map, wid).tier ?? '';
+};
+
+var covered = function(map, owner, scope) {
+  (map ?? []).filter(r => { r.active != false && (scope == 'subs' ? ('' + (r.path ?? '')).contains('|' + owner + '|') : ('' + (r.orgWid ?? '')) == owner) });
+};
+
+var reachText = function(map, owner, scope) {
+  var c = covered(map, owner ?? '', scope ?? 'org');
+  var w = 0;
+  for (var r : c) { w = w + (r.workerCount ?? 0); }
+  empty(owner) ? 'Pick an owner organization' : ('' + c.size() + ' orgs, ' + w + ' workers');
+};
+
+var reachWorkers = function(map, owner, scope) {
+  var w = 0;
+  for (var r : covered(map, owner, scope ?? 'org')) { w = w + (r.workerCount ?? 0); }
+  w;
+};
+
+var deptCount = function(map, owner, scope) {
+  covered(map, owner, scope ?? 'org').map(r => { '' + (r.deptWid ?? '') }).filter(x => { !empty(x) }).distinct().size();
+};
+
+// rule 2: a team block's scope must stay inside one department
+var scopeErr = function(map, owner, scope) {
+  var t = tierOf(map, owner);
+  (t == 'Team' && scope == 'subs' && deptCount(map, owner, scope) > 1) ? 'A team block can only reach orgs in one department: this scope reaches ' + deptCount(map, owner, scope) + '.' : '';
+};
+
+var orgPick = function(map) {
+  (map ?? []).filter(r => { r.active != false }).map(r => { { 'id': r.orgWid, 'descriptor': (r.name ?? '') + ' (' + (r.tier ?? '') + ')' } });
+};
+
+var orgSel = function(map, wid) {
+  empty(wid) ? [] : [{ 'id': wid, 'descriptor': (mapOf(map, wid).name ?? wid) + ' (' + (mapOf(map, wid).tier ?? '') + ')' }];
+};
+
+var setting = function(s, f, dflt) {
+  var v = first(s).get(f);
+  v == null ? dflt : v;
+};
+
+var budget = function(s, tier) {
+  tier == 'Enterprise' ? setting(s, 'budgetEnterprise', 12) : (tier == 'Department' ? setting(s, 'budgetDepartment', 10) : setting(s, 'budgetTeam', 8));
+};
+
+// slots a block takes on the fill page: one per question, a repeating group takes its rows (max, default 3) times
+// its children; structural rows (subform, nextform) take none
+var slots = function(qs) {
+  var n = 0;
+  for (var x : qs ?? []) {
+    var t = '' + (x.qType ?? '');
+    if (t != 'subform' && t != 'nextform' && t != 'repeat') { n = n + 1; }
+  }
+  n;
+};
+
+var clsOf = function(x) {
+  var c = ('' + (x.classification ?? '')).lowerCase();
+  c == 'confidential' ? 'Confidential' : (c == 'restricted' ? 'Restricted' : (x.confidential == true ? 'Confidential' : 'General'));
+};
+
+var classCount = function(qs, c) {
+  (qs ?? []).filter(x => { clsOf(x) == c }).size();
+};
+
+var keysOf = function(qs) {
+  '|' + (qs ?? []).map(x => { '' + (x.qKey ?? '') }).join('|') + '|';
+};
+
+var sig = function(x) {
+  (x.qType ?? '') + '/' + (x.qLabel ?? '') + '/' + (x.classification ?? '') + '/' + (x.required ?? false) + '/' + (x.reusable ?? false);
+};
+
+var diff = function(oldQs, newQs) {
+  var ok = keysOf(oldQs);
+  var nk = keysOf(newQs);
+  var added = (newQs ?? []).filter(x => { !ok.contains('|' + (x.qKey ?? '') + '|') }).map(x => { x.qKey ?? '' });
+  var removed = (oldQs ?? []).filter(x => { !nk.contains('|' + (x.qKey ?? '') + '|') }).map(x => { x.qKey ?? '' });
+  var changed = [];
+  for (var x : newQs ?? []) {
+    for (var y : oldQs ?? []) {
+      if ((x.qKey ?? '') == (y.qKey ?? '') && sig(x) != sig(y)) { changed.add(x.qKey ?? ''); }
+    }
+  }
+  (oldQs ?? []).size() == 0 ? 'First version: ' + (newQs ?? []).size() + ' questions.' :
+    ('Added: ' + (added.size() == 0 ? 'none' : added.join(', ')) + '. Removed: ' + (removed.size() == 0 ? 'none' : removed.join(', ')) +
+     '. Changed: ' + (changed.size() == 0 ? 'none' : changed.distinct().join(', ')) + '.');
+};
+
+var published = function(fams) {
+  var hit = {:};
+  for (var f : fams ?? []) { if ((f.status ?? '') == 'Published' && (empty(hit.version) || (f.version ?? 0) > hit.version)) { hit = f; } }
+  hit;
+};
+
+var blockTier = function(map, form, asgs) {
+  var t = empty(form.ownerOrg) ? '' : tierOf(map, form.ownerOrg.id);
+  !empty(t) ? t : (first(asgs).tier ?? (form.tier ?? 'Team'));
+};
+
+var reachAll = function(map, asgs) {
+  var w = 0;
+  for (var a : asgs ?? []) { if (a.active != false) { w = w + reachWorkers(map, a.ownerWid, a.scope); } }
+  w;
+};
+
+var publishErr = function(map, s, form, qs, asgs, gov, reason) {
+  var t = blockTier(map, form, asgs);
+  var b = budget(s, t);
+  var n = slots(qs);
+  var r = reachAll(map, asgs);
+  var se = '';
+  for (var a : asgs ?? []) { if (empty(se)) { se = scopeErr(map, a.ownerWid, a.scope); } }
+  n > b ? 'This ' + t + ' block takes ' + n + ' slots; the ' + t + ' budget is ' + b + '. Remove questions or ask governance for more.' :
+  ((t == 'Enterprise' || classCount(qs, 'Restricted') > 0) && gov != true ? 'Enterprise blocks and Restricted questions need governance approval: tick Governance approval.' :
+  ((t == 'Department' && r > setting(s, 'reachThreshold', 250) && gov != true) ? 'This block reaches ' + r + ' workers, over the ' + setting(s, 'reachThreshold', 250) + ' threshold: governance must approve.' :
+  (((classCount(qs, 'Confidential') + classCount(qs, 'Restricted')) > 0 && empty(reason)) ? 'Say why the protected questions are needed (privacy reason).' : se)));
+};
+
+var summary = function(map, s, form, qs, asgs) {
+  var t = blockTier(map, form, asgs);
+  t + ' block: ' + slots(qs) + ' of ' + budget(s, t) + ' ' + t.lowerCase() + ' slots. Reach: ' + reachAll(map, asgs) + ' workers through ' +
+    (asgs ?? []).size() + ' assignment(s). Questions: ' + classCount(qs, 'General') + ' general, ' + classCount(qs, 'Confidential') +
+    ' confidential, ' + classCount(qs, 'Restricted') + ' restricted; ' + (qs ?? []).filter(x => { x.reusable == true }).size() + ' reusable.';
+};
+
+// readiness: one row per definition of every process type the app supports
+var readyRows = function(defs) {
+  var out = [];
+  var m = { 'TimeOff': 'Request Time Off', 'ChangeJob': 'Change Job', 'Onboarding': 'Onboarding', 'Termination': 'Termination', 'Leave': 'Request Leave of Absence', 'Campaign': 'Extend campaign (yearly)' };
+  for (var d : defs ?? []) {
+    var tn = empty(d.businessProcessType) ? '' : ('' + (d.businessProcessType.descriptor ?? ''));
+    var code = '';
+    for (var k : m.keys()) { if (m.get(k) == tn) { code = k; } }
+    if (!empty(code)) {
+      var steps = (d.businessProcessSteps ?? []).map(x => { '' + (x.descriptor ?? '') });
+      var svc = steps.filter(x => { x.contains('Service') }).size();
+      var appr = steps.filter(x => { x.contains('Approval') }).size();
+      var todo = steps.filter(x => { x.contains('To Do') }).size();
+      var level = svc >= 2 && appr > 0 && todo > 0 ? 'Gate + route' : (svc >= 2 ? 'Gate only' : (svc == 1 ? 'Form only' : 'Not supported'));
+      var r = {:};
+      r.put('process', tn);
+      r.put('definition', empty(d.businessProcessDefinition) ? '' : ('' + (d.businessProcessDefinition.descriptor ?? '')));
+      r.put('level', level);
+      r.put('checks', 'Service steps ' + svc + ' (FormCompose, FormGate), approval steps ' + appr + ', To Do steps ' + todo + ' (route marker)');
+      r.put('fix', level == 'Gate + route' ? 'Ready' : (svc < 2 ? 'Add Service steps for FormCompose (start) and FormGate (before completion)' : 'Add an approval step after the gate and the route marker To Do, then the routing condition'));
+      out.add(r);
+    }
+  }
+  out;
+};
+
+var mapChecks = function(map, depts, settings) {
+  var out = [];
+  var none = (map ?? []).filter(r => { r.active != false && empty(r.deptWid) && (r.tier ?? '') != 'Enterprise' }).size();
+  out.add({ 'item': 'Org map', 'result': (map ?? []).size() > 0 ? 'Pass' : 'Fail', 'detail': '' + (map ?? []).size() + ' organizations', 'fix': (map ?? []).size() > 0 ? '' : 'Open Org map and click OK' });
+  out.add({ 'item': 'Departments', 'result': (depts ?? []).size() > 0 ? 'Pass' : 'Fail', 'detail': '' + (depts ?? []).size() + ' marked', 'fix': (depts ?? []).size() > 0 ? '' : 'Mark departments, then rebuild the org map' });
+  out.add({ 'item': 'Every worker resolves to one department', 'result': none == 0 ? 'Pass' : 'Fail', 'detail': '' + none + ' organizations below the top resolve to no department', 'fix': none == 0 ? '' : 'Mark the missing departments' });
+  out.add({ 'item': 'Forms settings', 'result': (settings ?? []).size() > 0 ? 'Pass' : 'Fail', 'detail': (settings ?? []).size() > 0 ? 'Budgets ' + setting(settings, 'budgetEnterprise', 12) + ' / ' + setting(settings, 'budgetDepartment', 10) + ' / ' + setting(settings, 'budgetTeam', 8) : 'Defaults in use', 'fix': (settings ?? []).size() > 0 ? '' : 'Open Settings and click OK' });
+  out.add({ 'item': 'Routing calculated fields (TEST DYN Comment Route HR, TEST DYN Event Route HR Comments) and rule TEST DYN Route HR', 'result': 'Check by hand', 'detail': 'Calculated fields can not ship in an app', 'fix': 'See docs/DYNAMIC-FORMS-SETUP.md' });
+  out.add({ 'item': 'Integration user: View All on each process policy, Get on read domains', 'result': 'Check by hand', 'detail': 'Security can only be read by an administrator', 'fix': 'View Security Group for the ISU group' });
+  out.add({ 'item': 'Disable Integration Subscriptions is off (after-completion path only)', 'result': 'Check by hand', 'detail': 'Edit Tenant Setup - Integrations', 'fix': '' });
+  out;
+};
+
+var libRows = function(qs, forms) {
+  var keys = (qs ?? []).filter(x => { !empty(x.libraryKey) }).map(x => { '' + x.libraryKey }).distinct().sort();
+  var out = [];
+  for (var k : keys) {
+    var hits = (qs ?? []).filter(x => { ('' + (x.libraryKey ?? '')) == k });
+    var h = first(hits);
+    out.add({ 'key': k, 'label': h.qLabel ?? '', 'cls': clsOf(h), 'reusable': h.reusable == true ? 'Yes, ' + (h.validMonths ?? 12) + ' months' : 'No',
+              'blocks': hits.map(x => { x.formCode ?? '' }).distinct().join(', ') });
+  }
+  out;
+};
+
+var dashRows = function(forms, map, asgs, ans) {
+  var codes = (ans ?? []).map(a => { '' + (a.formCode ?? '') }).sort();
+  var reused = (ans ?? []).filter(a => { (a.source ?? '') == 'reused' }).map(a => { '' + (a.formCode ?? '') }).sort();
+  var pre = (ans ?? []).filter(a => { (a.source ?? '') == 'prefill' }).map(a => { '' + (a.formCode ?? '') }).sort();
+  var out = [];
+  for (var f : (forms ?? []).filter(x => { (x.status ?? '') == 'Published' && (x.kind ?? '') != 'composed' })) {
+    var fam = '' + (f.family ?? f.code ?? '');
+    var mine = (asgs ?? []).filter(a => { ('' + (a.family ?? '')) == fam });
+    var owner = empty(f.ownerOrg) ? '' : ('' + (f.ownerOrg.id ?? ''));
+    var om = mapOf(map, owner);
+    var now = reachAll(map, mine);
+    var then = f.reachAtApproval ?? 0;
+    out.add({ 'code': f.code ?? '', 'owner': empty(owner) ? '(none)' : (om.name ?? owner), 'tier': empty(om.tier) ? (f.tier ?? '') : om.tier,
+              'status': (!empty(owner) && (empty(om.orgWid) || om.active == false)) ? 'Needs review: owner org inactive or moved' : (now != then && then > 0 ? 'Needs review: reach changed' : 'Active'),
+              'reach': '' + then + ' at approval, ' + now + ' now', 'answers': '' + cnt(codes, '' + (f.code ?? '')), 'reused': '' + cnt(reused, '' + (f.code ?? '')), 'prefill': '' + cnt(pre, '' + (f.code ?? '')) });
+  }
+  out;
+};
+
+// my reusable answers still valid
+var stillValid = function(a, today) {
+  var v = ('' + (a.validUntil ?? '')).replace('-', '');
+  v.length() >= 8 && v.substring(0, 8).toInt() >= today;
+};
+
+var myAnswers = function(ans) {
+  var today = date:now().format('yyyyMMdd').toInt();
+  (ans ?? []).filter(a => { stillValid(a, today) });
+};
+
+// ---- onboarding kit ----
+var kitCovers = function(map, path, item) {
+  item.active != false && ((item.scope ?? 'org') == 'subs' ? ('' + (path ?? '')).contains('|' + (item.ownerWid ?? '') + '|') : (empty(path) ? (item.tier ?? '') == 'Enterprise' : ('' + (path ?? '')).endsWith('|' + (item.ownerWid ?? '') + '|')));
+};
+
+var overridden = function(items, code) {
+  (items ?? []).filter(x => { ('' + (x.overrides ?? '')) == code && (x.status ?? '') == 'Published' }).size() > 0;
+};
+
+var tierRank = function(t) {
+  t == 'Enterprise' ? 1 : (t == 'Department' ? 2 : 3);
+};
+
+// the access list for one hire: every published access item that covers the hire's org (a customer copy replaces the
+// delivered item it overrides), with the peers' counts when the snapshot has a group of at least minPeers
+var accessRows = function(items, map, orgWid, snaps, s) {
+  var path = mapOf(map, orgWid).path ?? '';
+  var rec = setting(s, 'recommendPct', 80);
+  var com = setting(s, 'commonPct', 50);
+  var out = [];
+  for (var it : list:sort((items ?? []).filter(x => { (x.itemType ?? '') == 'access' && (x.status ?? '') == 'Published' }), 'tier', true)) {
+    if (kitCovers(map, path, it) && !overridden(items, '' + (it.code ?? ''))) {
+      var hit = {:};
+      for (var sn : snaps ?? []) { if (('' + (sn.itemCode ?? '')) == ('' + (it.code ?? ''))) { hit = sn; } }
+      var peers = hit.peers ?? 0;
+      var hold = hit.holding ?? 0;
+      var pct = peers > 0 ? (hold * 100) / peers : 0;
+      var elev = (it.sensitivity ?? '') == 'elevated';
+      var label = peers < setting(s, 'minPeers', 3) ? '' : (elev ? 'Common, needs a reason and extra approval' : (pct >= rec ? 'Recommended: ' + hold + ' of ' + peers + ' peers have it' : (pct >= com ? 'Common in this team: ' + hold + ' of ' + peers : '')));
+      var r = {:};
+      r.put('code', it.code ?? '');
+      r.put('title', it.title ?? '');
+      r.put('group', (it.tier ?? '') == 'Enterprise' ? 'Baseline' : (it.tier ?? ''));
+      r.put('fulfiller', it.fulfillerGroup ?? '');
+      r.put('sensitivity', it.sensitivity ?? 'standard');
+      r.put('rec', label);
+      r.put('ticked', !elev && ((it.tier ?? '') == 'Enterprise' || (peers >= setting(s, 'minPeers', 3) && pct >= rec)));
+      r.put('due', it.dueOffset ?? 0);
+      out.add(r);
+    }
+  }
+  out;
+};
+
+var kitByType = function(tasks, t) {
+  (tasks ?? []).filter(x => { (x.taskType ?? '') == t });
+};
+
+var welcomeText = function(items, tasks, map) {
+  var w = kitByType(tasks, 'welcome');
+  var note = kitByType(tasks, 'prepare').map(x => { '' + (x.managerNote ?? '') }).filter(x => { !empty(x) });
+  var parts = [];
+  for (var t : list:sort(w, 'tier', true)) {
+    for (var it : items ?? []) { if (('' + (it.code ?? '')) == ('' + (t.itemCode ?? ''))) { parts.add('<b>' + (it.title ?? '') + '</b><br>' + (it.body ?? '')); } }
+  }
+  if (note.size() > 0) { parts.add('<b>A note from your manager</b><br>' + note[0]); }
+  parts.size() == 0 ? 'Your welcome is not ready yet.' : parts.join('<br><br>');
+};
+
+// peers: active workers in one org with one job profile (rule 1), else the org and the orgs below it with that job
+// profile (rule 3); counts of each access item done for those peers in the kit history; only groups of minPeers or more
+var peerRows = function(workers, done, map, s) {
+  var minP = setting(s, 'minPeers', 3);
+  var keys = (workers ?? []).map(w => { (empty(w.supervisoryOrganization) ? '' : ('' + w.supervisoryOrganization.id)) + '#' + (empty(w.jobProfile) ? '' : ('' + w.jobProfile.id)) }).distinct();
+  var heldBy = (done ?? []).map(d => { ('' + (d.hireWid ?? '')) + '#' + ('' + (d.itemCode ?? '')) }).sort();
+  var items = (done ?? []).map(d => { '' + (d.itemCode ?? '') }).distinct();
+  var today = date:now().format('yyyy-MM-dd');
+  var out = [];
+  for (var k : keys) {
+    var org = k.substringBefore('#');
+    var jp = k.substringAfter('#');
+    var peers = (workers ?? []).filter(w => { !empty(w.supervisoryOrganization) && ('' + w.supervisoryOrganization.id) == org && !empty(w.jobProfile) && ('' + w.jobProfile.id) == jp });
+    var rule = 'org + job profile';
+    if (peers.size() < minP) {
+      var c = covered(map, org, 'subs').map(r => { '' + r.orgWid });
+      peers = (workers ?? []).filter(w => { !empty(w.supervisoryOrganization) && c.contains('' + w.supervisoryOrganization.id) && !empty(w.jobProfile) && ('' + w.jobProfile.id) == jp });
+      rule = 'org and below + job profile';
+    }
+    if (peers.size() >= minP) {
+      for (var it : items) {
+        var h = 0;
+        for (var p : peers) { if (cnt(heldBy, ('' + (empty(p.worker) ? '' : p.worker.id)) + '#' + it) > 0) { h = h + 1; } }
+        if (h > 0) { out.add({ 'snapKey': org + ':' + jp + ':' + it + ':' + today, 'orgWid': org, 'jobProfile': jp, 'itemCode': it, 'holding': h, 'peers': peers.size(), 'peerRule': rule, 'asOf': today }); }
+      }
+    }
+  }
+  out;
+};
+
+var overProv = function(rows) {
+  (rows ?? []).filter(r => { (r.holding ?? 0) > 0 && (r.holding ?? 0) <= 2 && (r.peers ?? 0) >= 6 });
+};
+
+var chunk = function(rows, part) {
+  var lo = part * 100;
+  var hi = lo + 100 > (rows ?? []).size() ? (rows ?? []).size() : lo + 100;
+  lo < (rows ?? []).size() ? rows.subList(lo, hi) : [];
+};
+
+var pkgs = function() {
+  json:parse('[{"code":"PKG:JOINER","name":"Onboarding kit (joiner)","jurisdiction":"CA","version":1,"process":"Onboarding","items":[{"code":"JOINER:W-HEAD","itemType":"welcome","title":"Welcome to the organization","body":"We are glad you are joining us. Your first day starts at 9:00; your manager will meet you. Your HR or legal team must review this text before use.","dueOffset":0,"fulfillerGroup":"","sensitivity":"standard"},{"code":"JOINER:L-CONDUCT","itemType":"learning","title":"Read the code of conduct","body":"Read and acknowledge the code of conduct. Your HR or legal team must review this text before use.","dueOffset":7,"fulfillerGroup":"","sensitivity":"standard"},{"code":"JOINER:L-PRIVACY","itemType":"learning","title":"Complete privacy training","body":"Complete the privacy and information security course.","dueOffset":30,"fulfillerGroup":"","sensitivity":"standard"},{"code":"JOINER:L-SAFETY","itemType":"learning","title":"Complete workplace safety orientation","body":"Workplace safety orientation for your location.","dueOffset":30,"fulfillerGroup":"","sensitivity":"standard"},{"code":"JOINER:A-LAPTOP","itemType":"access","title":"Laptop","body":"A standard laptop, ready on the first day.","dueOffset":-3,"fulfillerGroup":"IT","sensitivity":"standard"},{"code":"JOINER:A-EMAIL","itemType":"access","title":"Email account","body":"Work email account.","dueOffset":-3,"fulfillerGroup":"IT","sensitivity":"standard"},{"code":"JOINER:A-VPN","itemType":"access","title":"VPN access","body":"Remote access (VPN).","dueOffset":-1,"fulfillerGroup":"IT","sensitivity":"standard"},{"code":"JOINER:A-WORKDAY","itemType":"access","title":"Workday access","body":"Employee self-service in Workday (requested through Workday\'s own role assignment).","dueOffset":0,"fulfillerGroup":"Workday security","sensitivity":"standard"}]},{"code":"PKG:MOVER","name":"Internal move kit (mover)","jurisdiction":"CA","version":1,"process":"ChangeJob","items":[{"code":"MOVER:W-MOVE","itemType":"welcome","title":"Welcome to your new team","body":"Your new manager will share the team\'s first steps. Your HR or legal team must review this text before use.","dueOffset":0,"fulfillerGroup":"","sensitivity":"standard"},{"code":"MOVER:L-HANDOVER","itemType":"learning","title":"Hand over your previous work","body":"List open work and hand it over to your previous manager.","dueOffset":7,"fulfillerGroup":"","sensitivity":"standard"}]},{"code":"PKG:LEAVER","name":"Offboarding kit (leaver)","jurisdiction":"CA","version":1,"process":"Termination","items":[{"code":"LEAVER:L-RETURN","itemType":"learning","title":"Return equipment","body":"Return your laptop, badge and any other equipment.","dueOffset":0,"fulfillerGroup":"","sensitivity":"standard"},{"code":"LEAVER:A-REMOVE","itemType":"access","title":"Remove system access","body":"Remove access to every system on the last day.","dueOffset":0,"fulfillerGroup":"IT","sensitivity":"standard"}]}]');
+};
+
+var pkgRows = function(installed, items) {
+  var out = [];
+  for (var p : pkgs()) {
+    var rec = {:};
+    for (var i : installed ?? []) { if (('' + (i.code ?? '')) == p.code) { rec = i; } }
+    var have = (items ?? []).filter(x => { ('' + (x.packageCode ?? '')) == p.code && (x.origin ?? '') == 'Delivered' });
+    var copies = (items ?? []).filter(x => { (x.origin ?? '') == 'Customer' && ('' + (x.overrides ?? '')).startsWith(p.code.replace('PKG:', '') + ':') });
+    var older = have.filter(x => { (x.version ?? 1) < p.version }).size();
+    out.add({ 'code': p.code, 'name': p.name, 'jurisdiction': p.jurisdiction, 'version': '' + p.version, 'enabled': rec.enabled == true,
+              'id': rec.id ?? '', 'status': empty(rec.code) ? 'Not installed' : ('Installed: ' + have.size() + ' of ' + p.items.size() + ' items, ' + copies.size() + ' customer copies' + (older > 0 ? ', ' + older + ' older than the delivered version' : '')) });
+  }
+  out;
+};
+
+// the delivered items to install for the packages ticked on, skipping those already here
+var pkgInstall = function(ticked, items, map) {
+  var top = '';
+  for (var r : map ?? []) { if ((r.tier ?? '') == 'Enterprise' && r.active != false) { top = '' + r.orgWid; } }
+  var have = '|' + (items ?? []).map(x => { '' + (x.code ?? '') }).join('|') + '|';
+  var out = [];
+  for (var p : pkgs()) {
+    if ((ticked ?? []).contains(p.code)) {
+      for (var it : p.items) {
+        if (!have.contains('|' + it.code + '|')) {
+          var m = {:};
+          m.addAll(it);
+          m.put('ownerWid', top);
+          if (!empty(top)) { m.put('ownerOrg', { 'id': top }); }
+          m.put('scope', 'subs');
+          m.put('tier', 'Enterprise');
+          m.put('status', 'Published');
+          m.put('origin', 'Delivered');
+          m.put('packageCode', p.code);
+          m.put('processType', p.process);
+          m.put('version', p.version);
+          m.put('active', true);
+          out.add(m);
+        }
+      }
+    }
+  }
+  out;
+};
+
+{
+  "cnt": cnt, "first": first, "procName": procName, "procList": procList, "orgRows": orgRows, "mapPart": mapPart, "mapOf": mapOf,
+  "tierOf": tierOf, "covered": covered, "reachText": reachText, "reachWorkers": reachWorkers, "deptCount": deptCount,
+  "scopeErr": scopeErr, "orgPick": orgPick, "orgSel": orgSel, "setting": setting, "budget": budget, "slots": slots,
+  "clsOf": clsOf, "classCount": classCount, "diff": diff, "published": published, "blockTier": blockTier, "reachAll": reachAll,
+  "publishErr": publishErr, "summary": summary, "readyRows": readyRows, "mapChecks": mapChecks, "libRows": libRows,
+  "dashRows": dashRows, "stillValid": stillValid, "myAnswers": myAnswers, "kitCovers": kitCovers, "overridden": overridden, "tierRank": tierRank,
+  "accessRows": accessRows, "kitByType": kitByType, "welcomeText": welcomeText, "peerRows": peerRows, "overProv": overProv,
+  "chunk": chunk, "pkgs": pkgs, "pkgRows": pkgRows, "pkgInstall": pkgInstall
+}

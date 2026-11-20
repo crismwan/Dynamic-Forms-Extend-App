@@ -138,6 +138,46 @@
               "value": "<% 'No forms are waiting for you.' %>"
             }
           ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "moreFieldSet",
+          "title": "<% presentationLabels.DynMyForms_moreFieldSet_title %>",
+          "children": [
+            {
+              "type": "button",
+              "id": "answersButton",
+              "label": "<% presentationLabels.DynMyForms_answersButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "FormMyAnswers"
+              }
+            },
+            {
+              "type": "button",
+              "id": "welcomeButton",
+              "label": "<% presentationLabels.DynMyForms_welcomeButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "KitWelcome",
+                "parameterBindings": {
+                  "hire": "<% rows().size() > 0 ? ('' + (rows()[0].bpTarget ?? '')) : '' %>"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "guideButton",
+              "label": "<% presentationLabels.DynMyForms_guideButton_label %>",
+              "action": "AUXILIARY",
+              "taskReference": {
+                "taskId": "KitGuide",
+                "parameterBindings": {
+                  "hire": "<% rows().size() > 0 ? ('' + (rows()[0].bpTarget ?? '')) : '' %>"
+                }
+              }
+            }
+          ]
         }
       ]
     }

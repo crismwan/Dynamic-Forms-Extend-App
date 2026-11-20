@@ -1,0 +1,97 @@
+{
+  "id": 10,
+  "name": "DynOrgMap",
+  "label": "Dyn Org Map",
+  "defaultSecurityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "defaultCollection": {
+    "name": "dynOrgMaps",
+    "label": "All Dyn Org Maps"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "name",
+      "label": "Name",
+      "type": "TEXT",
+      "useForDisplay": true
+    },
+    {
+      "id": 2,
+      "name": "orgWid",
+      "label": "Organization ID",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 3,
+      "name": "org",
+      "label": "Organization",
+      "type": "SINGLE_INSTANCE",
+      "target": "SUPERVISORY_ORGANIZATION"
+    },
+    {
+      "id": 4,
+      "name": "parentWid",
+      "label": "Parent ID",
+      "type": "TEXT"
+    },
+    {
+      "id": 5,
+      "name": "deptWid",
+      "label": "Department ID",
+      "type": "TEXT"
+    },
+    {
+      "id": 6,
+      "name": "deptName",
+      "label": "Department",
+      "type": "TEXT"
+    },
+    {
+      "id": 7,
+      "name": "companyName",
+      "label": "Company",
+      "type": "TEXT"
+    },
+    {
+      "id": 8,
+      "name": "depth",
+      "label": "Depth",
+      "type": "INTEGER"
+    },
+    {
+      "id": 9,
+      "name": "path",
+      "label": "Path",
+      "type": "TEXT"
+    },
+    {
+      "id": 10,
+      "name": "active",
+      "label": "Active",
+      "type": "BOOLEAN"
+    },
+    {
+      "id": 11,
+      "name": "tier",
+      "label": "Tier",
+      "type": "TEXT"
+    },
+    {
+      "id": 12,
+      "name": "workerCount",
+      "label": "Workers",
+      "type": "INTEGER"
+    },
+    {
+      "id": 13,
+      "name": "refreshedOn",
+      "label": "Refreshed On",
+      "type": "DATE",
+      "precision": "DAY"
+    }
+  ]
+}

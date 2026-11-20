@@ -1,0 +1,226 @@
+{
+  "id": "FormOwnerDash",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynAuthor"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "forms",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynForms?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "ans",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT formCode, source FROM dynamicforms_kwswrv_dynAnswers') %>"
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    },
+    {
+      "name": "asgCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynAssigns?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "asgP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = asgCount.total ?? 0; let st = t - 100; 'dynAssigns?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (asgCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "asgP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = asgCount.total ?? 0; let st = t - 200; 'dynAssigns?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (asgCount.total ?? 0) - 100 <= 0 %>"
+    }
+  ],
+  "presentation": {
+    "pageType": "VIEW",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormOwnerDash_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormOwnerDash_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormOwnerDash_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "dashGrid",
+          "label": "<% presentationLabels.FormOwnerDash_dashGrid_label %>",
+          "rowVariableName": "br",
+          "rows": "<% tier.dashRows(forms.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), list:flatten([asgP0.data ?? [], asgP1.data ?? []]), ans.data ?? []) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "codeColumn",
+              "label": "<% presentationLabels.FormOwnerDash_codeColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "codeText",
+                "enabled": false,
+                "value": "<% br.code ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "ownerColumn",
+              "label": "<% presentationLabels.FormOwnerDash_ownerColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "ownerText",
+                "enabled": false,
+                "value": "<% br.owner ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "tierColumn",
+              "label": "<% presentationLabels.FormOwnerDash_tierColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "tierText",
+                "enabled": false,
+                "value": "<% br.tier ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "statusColumn",
+              "label": "<% presentationLabels.FormOwnerDash_statusColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "statusText",
+                "enabled": false,
+                "value": "<% br.status ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "reachColumn",
+              "label": "<% presentationLabels.FormOwnerDash_reachColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "reachText",
+                "enabled": false,
+                "value": "<% br.reach ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "answersColumn",
+              "label": "<% presentationLabels.FormOwnerDash_answersColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "answersText",
+                "enabled": false,
+                "value": "<% br.answers ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "reusedColumn",
+              "label": "<% presentationLabels.FormOwnerDash_reusedColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "reusedText",
+                "enabled": false,
+                "value": "<% br.reused ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "prefillColumn",
+              "label": "<% presentationLabels.FormOwnerDash_prefillColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "prefillText",
+                "enabled": false,
+                "value": "<% br.prefill ?? '' %>"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": 8,
+  "name": "DynAnswerRestr",
+  "label": "Dyn Answer Restricted",
+  "defaultSecurityDomains": [
+    "DynRestricted"
+  ],
+  "defaultCollection": {
+    "name": "dynAnswerRestrs",
+    "label": "All Dyn Answer Restricteds"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "responseKey",
+      "label": "Response Key",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 2,
+      "name": "formCode",
+      "label": "Form Code",
+      "type": "TEXT"
+    },
+    {
+      "id": 3,
+      "name": "qKey",
+      "label": "Question Key",
+      "type": "TEXT",
+      "useForDisplay": true
+    },
+    {
+      "id": 4,
+      "name": "rowNumber",
+      "label": "Row Number",
+      "type": "INTEGER"
+    },
+    {
+      "id": 5,
+      "name": "textValue",
+      "label": "Text Value",
+      "type": "TEXT"
+    },
+    {
+      "id": 6,
+      "name": "numberValue",
+      "label": "Number Value",
+      "type": "DECIMAL",
+      "decimals": 2
+    },
+    {
+      "id": 7,
+      "name": "dateValue",
+      "label": "Date Value",
+      "type": "DATE",
+      "precision": "DAY"
+    },
+    {
+      "id": 8,
+      "name": "refDescriptor",
+      "label": "Picked Record Name",
+      "type": "TEXT"
+    },
+    {
+      "id": 9,
+      "name": "tier",
+      "label": "Tier",
+      "type": "TEXT"
+    },
+    {
+      "id": 10,
+      "name": "source",
+      "label": "Source",
+      "type": "TEXT"
+    },
+    {
+      "id": 11,
+      "name": "validUntil",
+      "label": "Valid Until",
+      "type": "DATE",
+      "precision": "DAY"
+    },
+    {
+      "id": 12,
+      "name": "subjectWid",
+      "label": "Subject",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 13,
+      "name": "contextKey",
+      "label": "Context",
+      "type": "TEXT"
+    },
+    {
+      "id": 14,
+      "name": "answeredOn",
+      "label": "Answered On",
+      "type": "DATE",
+      "precision": "DAY"
+    }
+  ]
+}

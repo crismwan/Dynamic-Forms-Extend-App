@@ -77,7 +77,7 @@
             "code": 403
           }
         ],
-        "exclude": "<% !empty(qIdText.value) %>"
+        "exclude": "<% !empty(qIdText.value) || (fs.first(formRec.data ?? []).status ?? '') == 'Published' %>"
       },
       {
         "name": "patchQ",
@@ -93,14 +93,15 @@
             "code": 403
           }
         ],
-        "exclude": "<% empty(qIdText.value) %>"
+        "exclude": "<% empty(qIdText.value) || (fs.first(formRec.data ?? []).status ?? '') == 'Published' %>"
       },
       {
         "name": "deleteQ",
         "baseUrlType": "app",
         "url": "<% 'dynQuestions/' + qIdText.value %>",
         "httpMethod": "DELETE",
-        "authType": "sso"
+        "authType": "sso",
+        "exclude": "<% (fs.first(formRec.data ?? []).status ?? '') == 'Published' %>"
       }
     ]
   },
@@ -159,6 +160,12 @@
               "id": "formReadOnlyText",
               "label": "<% presentationLabels.FormQuestions_formReadOnlyText_label %>",
               "value": "<% empty(queryParams.form) ? 'Open this page from Forms: no form in the address.' : (queryParams.form + '  ' + (fs.first(formRec.data ?? []).formName ?? '(not found)')) %>"
+            },
+            {
+              "type": "readOnlyText",
+              "id": "publishedReadOnlyText",
+              "label": "<% presentationLabels.FormQuestions_publishedReadOnlyText_label %>",
+              "value": "<% (fs.first(formRec.data ?? []).status ?? '') == 'Published' ? 'This version is published and read only: OK saves nothing. Copy it to a new version (Copy, version or import) to change it.' : 'Draft: changes are saved on OK.' %>"
             },
             {
               "type": "readOnlyText",
@@ -798,6 +805,138 @@
                   {
                     "value": "<% self.value %>",
                     "valueOutBinding": "patchQ.help"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "classColumn",
+              "label": "<% presentationLabels.FormQuestions_classColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "classInstanceList",
+                "instanceList": [
+                  {
+                    "id": "general",
+                    "descriptor": "General"
+                  },
+                  {
+                    "id": "confidential",
+                    "descriptor": "Confidential (HR only)"
+                  },
+                  {
+                    "id": "restricted",
+                    "descriptor": "Restricted (named group; governance only)"
+                  }
+                ],
+                "selectedValues": "<% [qr.classification ?? 'general'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'general' : self.value[0] %>",
+                    "valueOutBinding": "postQ.classification"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'general' : self.value[0] %>",
+                    "valueOutBinding": "patchQ.classification"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "libraryColumn",
+              "label": "<% presentationLabels.FormQuestions_libraryColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "libraryText",
+                "value": "<% qr.libraryKey ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.libraryKey"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.libraryKey"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "reusableColumn",
+              "label": "<% presentationLabels.FormQuestions_reusableColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "reusableCheckBox",
+                "value": "<% qr.reusable ?? false %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "postQ.reusable"
+                  },
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "patchQ.reusable"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "validColumn",
+              "label": "<% presentationLabels.FormQuestions_validColumn_label %>",
+              "cellTemplate": {
+                "type": "number",
+                "id": "validNumber",
+                "value": "<% qr.validMonths ?? 12 %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postQ.validMonths"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchQ.validMonths"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "resetsColumn",
+              "label": "<% presentationLabels.FormQuestions_resetsColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "resetsInstanceList",
+                "instanceList": [
+                  {
+                    "id": "resetLocJob",
+                    "descriptor": "Location or job changes"
+                  },
+                  {
+                    "id": "resetLocation",
+                    "descriptor": "Location changes"
+                  },
+                  {
+                    "id": "resetJob",
+                    "descriptor": "Job changes"
+                  },
+                  {
+                    "id": "resetNever",
+                    "descriptor": "Only when it expires"
+                  }
+                ],
+                "selectedValues": "<% [qr.resetsWhen ?? 'resetLocJob'] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'resetLocJob' : self.value[0] %>",
+                    "valueOutBinding": "postQ.resetsWhen"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'resetLocJob' : self.value[0] %>",
+                    "valueOutBinding": "patchQ.resetsWhen"
                   }
                 ]
               }

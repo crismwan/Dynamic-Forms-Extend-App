@@ -1,0 +1,275 @@
+{
+  "id": "FormDepartments",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "depts",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynDepts?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "me",
+      "baseUrlType": "workday-api",
+      "url": "common/v1/workers/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postD",
+        "baseUrlType": "app",
+        "url": "dynDepts",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% !empty(dIdText.value) %>"
+      },
+      {
+        "name": "patchD",
+        "baseUrlType": "app",
+        "url": "<% 'dynDepts/' + dIdText.value %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(dIdText.value) %>"
+      },
+      {
+        "name": "deleteD",
+        "baseUrlType": "app",
+        "url": "<% 'dynDepts/' + dIdText.value %>",
+        "httpMethod": "DELETE",
+        "authType": "sso"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormDepartments_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormDepartments_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormDepartments_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "unresolvedText",
+          "label": "<% presentationLabels.FormDepartments_unresolvedText_label %>",
+          "enabled": false,
+          "value": "<% '' + (list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []])).filter(r => { r.active != false && empty(r.deptWid) && (r.tier ?? '') != 'Enterprise' }).size() + ' (as of the last org map rebuild)' %>"
+        },
+        {
+          "type": "grid",
+          "id": "deptGrid",
+          "label": "<% presentationLabels.FormDepartments_deptGrid_label %>",
+          "rowVariableName": "dr",
+          "deleteEndPoint": "deleteD",
+          "rows": "<% depts.data ?? [] %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "idColumn",
+              "label": "<% presentationLabels.FormDepartments_idColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "dIdText",
+                "enabled": false,
+                "value": "<% dr.id ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "orgColumn",
+              "label": "<% presentationLabels.FormDepartments_orgColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "orgInstanceList",
+                "values": "<% tier.orgPick(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []])) %>",
+                "selectedValuesAndDescriptors": "<% tier.orgSel(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), dr.orgWid) %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? '' : self.value[0] %>",
+                    "valueOutBinding": "postD.orgWid"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? '' : self.value[0] %>",
+                    "valueOutBinding": "patchD.orgWid"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? null : {'id': self.value[0]} %>",
+                    "valueOutBinding": "postD.org"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? null : {'id': self.value[0]} %>",
+                    "valueOutBinding": "patchD.org"
+                  },
+                  {
+                    "value": "<% empty(self.selectedEntries) ? '' : self.selectedEntries[0].descriptor.substringBefore(' (') %>",
+                    "valueOutBinding": "postD.name"
+                  },
+                  {
+                    "value": "<% empty(self.selectedEntries) ? '' : self.selectedEntries[0].descriptor.substringBefore(' (') %>",
+                    "valueOutBinding": "patchD.name"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "dateColumn",
+              "label": "<% presentationLabels.FormDepartments_dateColumn_label %>",
+              "cellTemplate": {
+                "type": "date",
+                "id": "effectiveDate",
+                "value": "<% dr.effectiveDate ?? date:now() %>",
+                "dateFormat": "yyyy-MM-dd",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? null : self.value.format('yyyy-MM-dd') %>",
+                    "valueOutBinding": "postD.effectiveDate"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? null : self.value.format('yyyy-MM-dd') %>",
+                    "valueOutBinding": "patchD.effectiveDate"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "activeColumn",
+              "label": "<% presentationLabels.FormDepartments_activeColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "activeCheckBox",
+                "value": "<% dr.active ?? true %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "postD.active"
+                  },
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "patchD.active"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "byColumn",
+              "label": "<% presentationLabels.FormDepartments_byColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "byText",
+                "enabled": false,
+                "value": "<% dr.designatedBy ?? (me.descriptor ?? '') %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postD.designatedBy"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchD.designatedBy"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormGovern"
+    }
+  }
+}

@@ -1,0 +1,283 @@
+{
+  "id": "KitPeers",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynGovern"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "workers",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT worker, supervisoryOrganization, jobProfile FROM workersForHCMReporting(dataSourceFilter=allActiveWorkers)') %>"
+    },
+    {
+      "name": "done",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=10000&query=' + string:pathEncode('SELECT hireWid, itemCode, status FROM dynamicforms_kwswrv_dynKitTasks WHERE taskType = \"access\" AND status = \"done\"') %>"
+    },
+    {
+      "name": "settings",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynSettings?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postSnap0",
+        "baseUrlType": "app",
+        "url": "dynAccessSnaps?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.chunk(tier.peerRows(workers.data ?? [], done.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? []), 0).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.chunk(tier.peerRows(workers.data ?? [], done.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? []), 0); self.data; %>"
+      },
+      {
+        "name": "postSnap1",
+        "baseUrlType": "app",
+        "url": "dynAccessSnaps?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.chunk(tier.peerRows(workers.data ?? [], done.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? []), 1).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.chunk(tier.peerRows(workers.data ?? [], done.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? []), 1); self.data; %>"
+      },
+      {
+        "name": "postSnap2",
+        "baseUrlType": "app",
+        "url": "dynAccessSnaps?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% tier.chunk(tier.peerRows(workers.data ?? [], done.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? []), 2).size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = tier.chunk(tier.peerRows(workers.data ?? [], done.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? []), 2); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.KitPeers_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.KitPeers_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.KitPeers_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "snapGrid",
+          "label": "<% presentationLabels.KitPeers_snapGrid_label %>",
+          "rowVariableName": "sr",
+          "rows": "<% tier.peerRows(workers.data ?? [], done.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? []) %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "orgColumn",
+              "label": "<% presentationLabels.KitPeers_orgColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "orgText",
+                "enabled": false,
+                "value": "<% tier.mapOf(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), sr.orgWid).name ?? sr.orgWid %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "jpColumn",
+              "label": "<% presentationLabels.KitPeers_jpColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "jpText",
+                "enabled": false,
+                "value": "<% sr.jobProfile ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "itemColumn",
+              "label": "<% presentationLabels.KitPeers_itemColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "itemText",
+                "enabled": false,
+                "value": "<% sr.itemCode ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "countColumn",
+              "label": "<% presentationLabels.KitPeers_countColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "countText",
+                "enabled": false,
+                "value": "<% '' + sr.holding + ' of ' + sr.peers %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "ruleColumn",
+              "label": "<% presentationLabels.KitPeers_ruleColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "ruleText",
+                "enabled": false,
+                "value": "<% sr.peerRule ?? '' %>"
+              }
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "overGrid",
+          "label": "<% presentationLabels.KitPeers_overGrid_label %>",
+          "rowVariableName": "or1",
+          "rows": "<% tier.overProv(tier.peerRows(workers.data ?? [], done.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), settings.data ?? [])) %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "oOrgColumn",
+              "label": "<% presentationLabels.KitPeers_oOrgColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "oOrgText",
+                "enabled": false,
+                "value": "<% tier.mapOf(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), or1.orgWid).name ?? or1.orgWid %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "oItemColumn",
+              "label": "<% presentationLabels.KitPeers_oItemColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "oItemText",
+                "enabled": false,
+                "value": "<% or1.itemCode ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "oCountColumn",
+              "label": "<% presentationLabels.KitPeers_oCountColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "oCountText",
+                "enabled": false,
+                "value": "<% '' + or1.holding + ' of ' + or1.peers %>"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormGovern"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": 18,
+  "name": "KitPrepare",
+  "label": "Prepare for a New Hire",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynFill"
+  ],
+  "routePath": "/kitPrepare"
+}

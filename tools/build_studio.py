@@ -75,6 +75,12 @@ def inst(pairs):
 target_map = ", ".join("'%s': '%s'" % (i, esc(f) or "No fields") for i, _, f in BOS)
 target_names = ", ".join("'%s': '%s'" % (i, esc(d)) for i, d in TARGETS)
 SCRIPT = r'''
+var tierIn = function(map, wid) {
+  var t = '';
+  for (var r : map ?? []) { if (('' + (r.orgWid ?? '')) == ('' + (wid ?? ''))) { t = '' + (r.tier ?? ''); } }
+  t;
+};
+
 var first = function(d) {
   (d ?? []).size() > 0 ? d.get(0) : {:};
 };
@@ -220,7 +226,7 @@ var rxTest = function(rx, sample) {
 };
 
 {
-  "first": first, "txt": txt, "csv": csv, "dsSel": dsSel, "dsJoin": dsJoin, "pickOne": pickOne, "one": one,
+  "first": first, "tierIn": tierIn, "txt": txt, "csv": csv, "dsSel": dsSel, "dsJoin": dsJoin, "pickOne": pickOne, "one": one,
   "countFor": countFor, "targetName": targetName, "targetFields": targetFields, "requestText": requestText,
   "dsCount": dsCount, "dsList": dsList, "dsIdList": dsIdList, "fieldList": fieldList, "dsQuery": dsQuery, "dsPick": dsPick, "typeCode": typeCode, "relOf": relOf,
   "fieldPick": fieldPick, "targets": targets, "tRow": tRow, "targetRows": targetRows, "tDef": tDef, "targetDefs": targetDefs, "targetSel": targetSel, "targetFind": targetFind, "copyText": copyText,
@@ -311,7 +317,8 @@ studio = {"id": "FormStudio", "securityDomains": DOM, "include": ["fs.script"],
                                 "columns": [
                                     link_col("codeColumn", "Code", "fr.id", "fr.code ?? ''"),
                                     col("nameColumn", "Name", ro("nameText", "<% fr.formName ?? '' %>"), sortableAndFilterable="true"),
-                                    col("statusColumn", "Status", ro("statusText", "<% (fr.status ?? '').lowerCase() == 'approved' ? '✓ Approved' : ((fr.status ?? '').lowerCase() == 'retired' ? '✕ Retired' : '○ Draft') %>"), sortableAndFilterable="true"),
+                                    col("statusColumn", "Status", ro("statusText", "<% ['approved', 'published'].contains((fr.status ?? '').lowerCase()) ? '✓ ' + fr.status : (['retired', 'superseded'].contains((fr.status ?? '').lowerCase()) ? '✕ ' + fr.status : '○ ' + (fr.status ?? 'Draft')) %>"), sortableAndFilterable="true"),
+                                    col("tierColumn", "Owner and tier", ro("tierText", "<% (fr.kind ?? '') == 'composed' ? 'Composed: ' + (fr.blocks ?? '') : ((empty(fr.ownerOrg) ? '' : ('' + fr.ownerOrg.descriptor + ', ')) + (fr.tier ?? '')) %>")),
                                     col("targetColumn", "Business object", ro("targetText", "<% fs.targetName(fr.targetObject) %>"), sortableAndFilterable="true"),
                                     col("sourcesColumn", "Data sources", ro("sourcesText", "<% fs.dsCount(fr.dataSources) %>")),
                                     col("requestColumn", "Request", ro("requestText", "<% fs.requestText(fr) %>")),
@@ -320,7 +327,8 @@ studio = {"id": "FormStudio", "securityDomains": DOM, "include": ["fs.script"],
                                     col("designColumn", "Design", btn("designButton", "Design", "FormDesigner", True)),
                                     col("editQuestionsColumn", "Questions", btn("questionsButton", "Questions", "FormQuestions")),
                                     col("fillColumn", "Fill", btn("fillButton", "Fill", "DynFormLookup")),
-                                    col("answersColumn", "Responses", btn("answersButton", "Responses", "DynFormResults"))]},
+                                    col("answersColumn", "Responses", btn("answersButton", "Responses", "DynFormResults")),
+                                    col("publishColumn", "Publish", btn("publishButton", "Publish", "FormPublish"))]},
                                {"type": "fieldSet", "id": "emptyFieldSet", "title": "No forms yet", "render": X("(forms.data ?? []).size() == 0"),
                                 "children": [{"type": "text", "id": "emptyText", "enabled": False, "value": "<% 'Use New form above to make the first one.' %>"}]}]}}}
 write(os.path.join(PRES, 'FormStudio.pmd'), studio)
@@ -328,7 +336,7 @@ write(os.path.join(PRES, 'FormStudio.pmd'), studio)
 # ---- FormDesigner: one form ----
 new = "empty(queryParams.form)"
 designer = {"id": "FormDesigner", "securityDomains": DOM, "include": ["fs.script", "browse.script"],
-            "endPoints": [FORM_EP, DS_SEARCH],
+            "endPoints": [FORM_EP, DS_SEARCH, {"name": "omap", "baseUrlType": "app", "authType": "sso", "failOnStatusCodes": FAIL, "url": "dynOrgMaps?limit=100"}],
             "outboundData": {"outboundEndPoints": [
                 {"name": "postForm", "baseUrlType": "app", "url": "dynForms", "httpMethod": "POST", "authType": "sso",
                  "failOnStatusCodes": FAIL, "exclude": X("!empty(" + F + ".id)"), "onSend": "<% formBody() %>"},
@@ -345,6 +353,9 @@ designer = {"id": "FormDesigner", "securityDomains": DOM, "include": ["fs.script
                       "    b.put('requestFramework', requestCheckBox.getValue() ?? false);\n"
                       "    b.put('requestType', requestTypeText.getValue() ?? '');\n"
                       "    b.put('businessProcess', fs.pickOne(processInstanceList.getValue()));\n"
+                      "    if (!empty(ownerInstanceList.getValue())) { b.put('ownerOrg', { 'id': ownerInstanceList.getValue()[0] }); b.put('tier', fs.tierIn(omap.data ?? [], ownerInstanceList.getValue()[0])); }\n"
+                      "    b.put('retentionMonths', retentionNumber.getValue() ?? 84);\n"
+                      "    if (empty(" + F + ".id)) { b.put('origin', 'Customer'); }\n"
                       "    b;\n  };\n%>",
             "presentation": {"pageType": "EDIT", "title": {"type": "title", "id": "pageTitle", "label": "Design a form"},
                              "cancelOverride": {"taskId": "FormStudio"},
@@ -364,6 +375,13 @@ designer = {"id": "FormDesigner", "securityDomains": DOM, "include": ["fs.script
                                      {"type": "instanceList", "id": "statusInstanceList", "label": "Status", "required": True,
                                       "instanceList": inst(STATUSES), "selectedValues": X("fs.one((" + F + ".status ?? 'draft').lowerCase(), 'draft')")},
                                      {"type": "number", "id": "versionNumber", "label": "Version", "value": X(F + ".version ?? 1")}]},
+                                 {"type": "fieldSet", "id": "ownerFieldSet", "title": "Ownership (tiered blocks)", "children": [
+                                     {"type": "instanceList", "id": "ownerInstanceList", "label": "Owner organization (sets the tier)",
+                                      "values": "<% (omap.data ?? []).filter(r => { r.active != false }).map(r => { { 'id': r.orgWid, 'descriptor': (r.name ?? '') + ' (' + (r.tier ?? '') + ')' } }) %>",
+                                      "selectedValuesAndDescriptors": X("empty(" + F + ".ownerOrg) ? [] : [{'id': " + F + ".ownerOrg.id, 'descriptor': " + F + ".ownerOrg.descriptor ?? ''}]")},
+                                     {"type": "number", "id": "retentionNumber", "label": "Keep answers for (months)", "value": X(F + ".retentionMonths ?? 84")},
+                                     {"type": "readOnlyText", "id": "ownerHelpReadOnlyText", "label": "How blocks reach people",
+                                      "value": "<% 'Attach this block to a process in Block assignments (Governance), with an owner organization and scope. Publish each version from Form Studio.' %>"}]},
                                  {"type": "fieldSet", "id": "sourcesFieldSet", "title": "Where the data comes from", "children": [
                                      {"type": "instanceList", "id": "dataSourcesInstanceList", "label": "Data sources (type to search)",
                                       "multiSelect": True, "values": "<% browse.dsRoot() %>",
@@ -402,6 +420,8 @@ def icell(cid, field, pairs, default):
 
 key_cell = tcell("keyText", "qKey")
 key_cell["valuesOut"] += [{"value": "<% queryParams.form ?? '' %>", "valueOutBinding": "postQ.formCode"}]
+CLASSES = [("general", "General"), ("confidential", "Confidential (HR only)"), ("restricted", "Restricted (named group; governance only)")]
+RESETS = [("resetLocJob", "Location or job changes"), ("resetLocation", "Location changes"), ("resetJob", "Job changes"), ("resetNever", "Only when it expires")]
 QCOLS = [
     col("idColumn", "ID", {"type": "text", "id": "qIdText", "enabled": False, "value": "<% qr.id ?? '' %>"}),
     col("orderColumn", "Order", {"type": "number", "id": "orderNumber", "value": "<% qr.sortOrder ?? 1 %>", "valuesOut": cell_out("sortOrder")}, required=True),
@@ -424,6 +444,13 @@ QCOLS = [
     col("targetFieldColumn", "Target field", tcell("targetFieldText", "targetField")),
     col("paramsColumn", "Parameters (k=v;k=v)", tcell("paramsText", "params")),
     col("helpColumn", "Help", tcell("helpText", "help")),
+    # tiered ownership (2026-11-20): storage class, shared library key, reuse
+    col("classColumn", "Classification", icell("classInstanceList", "classification", CLASSES, "general")),
+    col("libraryColumn", "Library key", tcell("libraryText", "libraryKey")),
+    col("reusableColumn", "Reusable", {"type": "checkBox", "id": "reusableCheckBox", "value": "<% qr.reusable ?? false %>",
+                                       "valuesOut": cell_out("reusable", "<% self.value ?? false %>")}),
+    col("validColumn", "Valid for months", {"type": "number", "id": "validNumber", "value": "<% qr.validMonths ?? 12 %>", "valuesOut": cell_out("validMonths")}),
+    col("resetsColumn", "Resets when", icell("resetsInstanceList", "resetsWhen", RESETS, "resetLocJob")),
 ]
 QS_EP = {"name": "qs", "baseUrlType": "app", "authType": "sso", "failOnStatusCodes": FAIL,
          "url": X("'dynQuestions?limit=100&formCode=' + (queryParams.form ?? '').urlEncode()"), "exclude": X("empty(queryParams.form)")}
@@ -447,11 +474,11 @@ questions = {"id": "FormQuestions", "securityDomains": DOM, "include": ["fs.scri
              "endPoints": [FORM_EP, QS_EP, DS_ID_SEARCH, FIELDS_EP, FIELDS_PAGE],
              "outboundData": {"outboundEndPoints": [
                  {"name": "postQ", "baseUrlType": "app", "url": "dynQuestions", "httpMethod": "POST", "authType": "sso",
-                  "failOnStatusCodes": FAIL, "exclude": "<% !empty(qIdText.value) %>"},
+                  "failOnStatusCodes": FAIL, "exclude": "<% !empty(qIdText.value) || (fs.first(formRec.data ?? []).status ?? '') == 'Published' %>"},
                  {"name": "patchQ", "baseUrlType": "app", "url": "<% 'dynQuestions/' + qIdText.value %>", "httpMethod": "PATCH",
-                  "authType": "sso", "failOnStatusCodes": FAIL, "exclude": "<% empty(qIdText.value) %>"},
+                  "authType": "sso", "failOnStatusCodes": FAIL, "exclude": "<% empty(qIdText.value) || (fs.first(formRec.data ?? []).status ?? '') == 'Published' %>"},
                  {"name": "deleteQ", "baseUrlType": "app", "url": "<% 'dynQuestions/' + qIdText.value %>", "httpMethod": "DELETE",
-                  "authType": "sso"}]},
+                  "authType": "sso", "exclude": "<% (fs.first(formRec.data ?? []).status ?? '') == 'Published' %>"}]},
              "presentation": {"pageType": "EDIT", "title": {"type": "title", "id": "pageTitle", "label": "Form questions"},
                               "cancelOverride": {"taskId": "FormStudio"},
                               "body": {"type": "section", "id": "bodySection", "children": [
@@ -466,6 +493,8 @@ questions = {"id": "FormQuestions", "securityDomains": DOM, "include": ["fs.scri
                                   {"type": "fieldSet", "id": "formFieldSet", "title": "Form", "children": [
                                       {"type": "readOnlyText", "id": "formReadOnlyText", "label": "Form",
                                        "value": X("empty(queryParams.form) ? 'Open this page from Forms: no form in the address.' : (queryParams.form + '  ' + (" + F + ".formName ?? '(not found)'))")},
+                                      {"type": "readOnlyText", "id": "publishedReadOnlyText", "label": "Editing",
+                                       "value": X("(fs.first(formRec.data ?? []).status ?? '') == 'Published' ? 'This version is published and read only: OK saves nothing. Copy it to a new version (Copy, version or import) to change it.' : 'Draft: changes are saved on OK.'")},
                                       {"type": "readOnlyText", "id": "targetReadOnlyText", "label": "Business object",
                                        "value": X("fs.targetName(" + F + ".targetObject)")},
                                       {"type": "readOnlyText", "id": "targetFieldsReadOnlyText", "label": "Its fields (for Target field)",

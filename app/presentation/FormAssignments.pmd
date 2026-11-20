@@ -1,0 +1,360 @@
+{
+  "id": "FormAssignments",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynAuthor"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "asgCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynAssigns?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "asgP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = asgCount.total ?? 0; let st = t - 100; 'dynAssigns?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (asgCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "asgP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = asgCount.total ?? 0; let st = t - 200; 'dynAssigns?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (asgCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postA",
+        "baseUrlType": "app",
+        "url": "dynAssigns",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% !empty(aIdText.value) %>"
+      },
+      {
+        "name": "patchA",
+        "baseUrlType": "app",
+        "url": "<% 'dynAssigns/' + aIdText.value %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(aIdText.value) %>"
+      },
+      {
+        "name": "deleteA",
+        "baseUrlType": "app",
+        "url": "<% 'dynAssigns/' + aIdText.value %>",
+        "httpMethod": "DELETE",
+        "authType": "sso"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.FormAssignments_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.FormAssignments_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.FormAssignments_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "assignGrid",
+          "label": "<% presentationLabels.FormAssignments_assignGrid_label %>",
+          "rowVariableName": "ar",
+          "deleteEndPoint": "deleteA",
+          "rows": "<% list:flatten([asgP0.data ?? [], asgP1.data ?? []]) %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "idColumn",
+              "label": "<% presentationLabels.FormAssignments_idColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "aIdText",
+                "enabled": false,
+                "value": "<% ar.id ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "familyColumn",
+              "label": "<% presentationLabels.FormAssignments_familyColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "familyText",
+                "value": "<% ar.family ?? '' %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postA.family"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchA.family"
+                  },
+                  {
+                    "value": "<% (self.value ?? '') + ' / ' + (empty(processInstanceList.value) ? '' : processInstanceList.value[0]) %>",
+                    "valueOutBinding": "postA.ref"
+                  },
+                  {
+                    "value": "<% (self.value ?? '') + ' / ' + (empty(processInstanceList.value) ? '' : processInstanceList.value[0]) %>",
+                    "valueOutBinding": "patchA.ref"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "processColumn",
+              "label": "<% presentationLabels.FormAssignments_processColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "processInstanceList",
+                "values": "<% tier.procList() %>",
+                "selectedValues": "<% empty(ar.processType) ? [] : [ar.processType] %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? '' : self.value[0] %>",
+                    "valueOutBinding": "postA.processType"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? '' : self.value[0] %>",
+                    "valueOutBinding": "patchA.processType"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "ownerColumn",
+              "label": "<% presentationLabels.FormAssignments_ownerColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "ownerInstanceList",
+                "values": "<% tier.orgPick(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []])) %>",
+                "selectedValuesAndDescriptors": "<% tier.orgSel(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), ar.ownerWid) %>",
+                "onChange": "<% reachReadOnlyText.setValue(tier.reachText(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), empty(self.value) ? '' : self.value[0], empty(scopeInstanceList.value) ? 'org' : scopeInstanceList.value[0])); var e = tier.scopeErr(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), empty(self.value) ? '' : self.value[0], empty(scopeInstanceList.value) ? 'org' : scopeInstanceList.value[0]); if (empty(e)) { self.clearError(); scopeInstanceList.clearError(); } else { self.setError(e); } %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? '' : self.value[0] %>",
+                    "valueOutBinding": "postA.ownerWid"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? '' : self.value[0] %>",
+                    "valueOutBinding": "patchA.ownerWid"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? null : {'id': self.value[0]} %>",
+                    "valueOutBinding": "postA.ownerOrg"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? null : {'id': self.value[0]} %>",
+                    "valueOutBinding": "patchA.ownerOrg"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? '' : tier.tierOf(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), self.value[0]) %>",
+                    "valueOutBinding": "postA.tier"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? '' : tier.tierOf(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), self.value[0]) %>",
+                    "valueOutBinding": "patchA.tier"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "scopeColumn",
+              "label": "<% presentationLabels.FormAssignments_scopeColumn_label %>",
+              "cellTemplate": {
+                "type": "instanceList",
+                "id": "scopeInstanceList",
+                "instanceList": [
+                  {
+                    "id": "org",
+                    "descriptor": "Org only"
+                  },
+                  {
+                    "id": "subs",
+                    "descriptor": "Org + subordinates"
+                  }
+                ],
+                "selectedValues": "<% [ar.scope ?? 'org'] %>",
+                "onChange": "<% reachReadOnlyText.setValue(tier.reachText(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), empty(ownerInstanceList.value) ? '' : ownerInstanceList.value[0], empty(self.value) ? 'org' : self.value[0])); var e = tier.scopeErr(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), empty(ownerInstanceList.value) ? '' : ownerInstanceList.value[0], empty(self.value) ? 'org' : self.value[0]); if (empty(e)) { self.clearError(); ownerInstanceList.clearError(); } else { self.setError(e); } %>",
+                "valuesOut": [
+                  {
+                    "value": "<% empty(self.value) ? 'org' : self.value[0] %>",
+                    "valueOutBinding": "postA.scope"
+                  },
+                  {
+                    "value": "<% empty(self.value) ? 'org' : self.value[0] %>",
+                    "valueOutBinding": "patchA.scope"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "type": "column",
+              "columnId": "reachColumn",
+              "label": "<% presentationLabels.FormAssignments_reachColumn_label %>",
+              "cellTemplate": {
+                "type": "readOnlyText",
+                "id": "reachReadOnlyText",
+                "value": "<% tier.reachText(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), ar.ownerWid ?? '', ar.scope ?? 'org') %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "gateColumn",
+              "label": "<% presentationLabels.FormAssignments_gateColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "gateCheckBox",
+                "value": "<% ar.gateOn ?? true %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "postA.gateOn"
+                  },
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "patchA.gateOn"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "orderColumn",
+              "label": "<% presentationLabels.FormAssignments_orderColumn_label %>",
+              "cellTemplate": {
+                "type": "number",
+                "id": "orderNumber",
+                "value": "<% ar.sectionOrder ?? 1 %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "postA.sectionOrder"
+                  },
+                  {
+                    "value": "<% self.value %>",
+                    "valueOutBinding": "patchA.sectionOrder"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "activeColumn",
+              "label": "<% presentationLabels.FormAssignments_activeColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "activeCheckBox",
+                "value": "<% ar.active ?? true %>",
+                "valuesOut": [
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "postA.active"
+                  },
+                  {
+                    "value": "<% self.value ?? false %>",
+                    "valueOutBinding": "patchA.active"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "FormGovern"
+    }
+  }
+}

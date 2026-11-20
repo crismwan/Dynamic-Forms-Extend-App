@@ -1,0 +1,321 @@
+{
+  "id": "KitPrepare",
+  "securityDomains": [
+    "UseDynamicForms",
+    "DynFill"
+  ],
+  "include": [
+    "tier.script"
+  ],
+  "endPoints": [
+    {
+      "name": "tasks",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% 'dynKitTasks?limit=100&bpEvent=' + (queryParams.event ?? 'none') %>",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "exclude": "<% empty(queryParams.event) %>"
+    },
+    {
+      "name": "items",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynKitItems?limit=100",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "settings",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynSettings?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "me",
+      "baseUrlType": "workday-api",
+      "url": "common/v1/workers/me",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "hire",
+      "baseUrlType": "workday-wql",
+      "authType": "sso",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ],
+      "url": "<% 'data?limit=1&query=' + string:pathEncode('SELECT worker, jobProfile, supervisoryOrganization, hireDate FROM allWorkers WHERE workdayID = \"' + ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).hireWid ?? '')) + '\"') %>",
+      "exclude": "<% empty(('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).hireWid ?? ''))) %>"
+    },
+    {
+      "name": "snaps",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% 'dynAccessSnaps?limit=100&orgWid=' + ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).orgWid ?? '')) %>",
+      "exclude": "<% empty(('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).orgWid ?? ''))) %>"
+    },
+    {
+      "name": "mapCount",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "dynOrgMaps?limit=1",
+      "failOnStatusCodes": [
+        {
+          "code": 400
+        },
+        {
+          "code": 403
+        }
+      ]
+    },
+    {
+      "name": "mapP0",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 100; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 0 <= 0 %>"
+    },
+    {
+      "name": "mapP1",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 200; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 100 <= 0 %>"
+    },
+    {
+      "name": "mapP2",
+      "baseUrlType": "app",
+      "authType": "sso",
+      "url": "<% let t = mapCount.total ?? 0; let st = t - 300; 'dynOrgMaps?limit=100&offset=' + (st < 0 ? 0 : st) %>",
+      "exclude": "<% (mapCount.total ?? 0) - 200 <= 0 %>"
+    }
+  ],
+  "script": "<%\n  var picked = function() {\n    var out = [];\n    var stamp = date:now().format('yyyyMMddHHmmssSSS');\n    for (var r : accessGrid.rows) {\n      var cm = r.childrenMap;\n      if (cm.requestColumn.value == true) {\n        var m = {:};\n        m.put('key', 'KIT:' + stamp + ':' + cm.codeColumn.value);\n        m.put('taskType', 'access');\n        m.put('hireWid', ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).hireWid ?? '')));\n        m.put('newHire', { 'id': ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).hireWid ?? '')) });\n        m.put('hirePerson', tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).hirePerson ?? '');\n        m.put('itemCode', cm.codeColumn.value);\n        m.put('title', cm.titleColumn.value);\n        m.put('status', 'requested');\n        m.put('requestedBy', me.descriptor ?? '');\n        m.put('fulfillerGroup', cm.groupColumn.value);\n        m.put('bpEvent', queryParams.event ?? '');\n        m.put('source', empty(cm.recColumn.value) ? 'added' : 'recommended');\n        m.put('sensitivity', cm.sensColumn.value);\n        m.put('reason', cm.reasonColumn.value ?? '');\n        m.put('orgWid', ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).orgWid ?? '')));\n        m.put('jobProfile', (((hire.data ?? []).size() > 0 && !empty(hire.data[0].jobProfile)) ? ('' + hire.data[0].jobProfile.id) : ''));\n        out.add(m);\n      }\n      if (cm.requestColumn.value != true && !empty(cm.reasonColumn.value)) {\n        var n = {:};\n        n.put('key', 'KIT:' + stamp + ':' + cm.codeColumn.value + ':X');\n        n.put('taskType', 'access');\n        n.put('hireWid', ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).hireWid ?? '')));\n        n.put('itemCode', cm.codeColumn.value);\n        n.put('title', cm.titleColumn.value);\n        n.put('status', 'skipped');\n        n.put('reason', cm.reasonColumn.value);\n        n.put('requestedBy', me.descriptor ?? '');\n        n.put('bpEvent', queryParams.event ?? '');\n        n.put('source', 'removed');\n        out.add(n);\n      }\n    }\n    out;\n  };\n%>",
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postAccess",
+        "baseUrlType": "app",
+        "url": "dynKitTasks?bulk=true",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% picked().size() == 0 %>",
+        "onSend": "<% self.data = {:}; self.data.data = picked(); self.data; %>"
+      },
+      {
+        "name": "donePrep",
+        "baseUrlType": "app",
+        "url": "<% 'dynKitTasks/' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).id ?? 'none') %>",
+        "httpMethod": "PATCH",
+        "authType": "sso",
+        "failOnStatusCodes": [
+          {
+            "code": 400
+          },
+          {
+            "code": 403
+          }
+        ],
+        "exclude": "<% empty(tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).id) %>",
+        "onSend": "<% self.data = {:}; self.data.managerNote = noteTextArea.getValue() ?? ''; self.data.status = 'done'; self.data.doneBy = me.descriptor ?? ''; self.data.doneOn = date:now().format('yyyy-MM-dd'); self.data; %>"
+      }
+    ]
+  },
+  "presentation": {
+    "pageType": "EDIT",
+    "title": {
+      "type": "title",
+      "id": "pageTitle",
+      "label": "<% presentationLabels.KitPrepare_pageTitle_label %>"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "aboutFieldSet",
+          "title": "<% presentationLabels.KitPrepare_aboutFieldSet_title %>",
+          "children": [
+            {
+              "type": "richText",
+              "id": "aboutRichText",
+              "value": "<% presentationLabels.KitPrepare_aboutRichText_value %>"
+            }
+          ]
+        },
+        {
+          "type": "fieldSet",
+          "id": "hireFieldSet",
+          "title": "<% presentationLabels.KitPrepare_hireFieldSet_title %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "hireText",
+              "label": "<% presentationLabels.KitPrepare_hireText_label %>",
+              "enabled": false,
+              "value": "<% (hire.data ?? []).size() > 0 && !empty(hire.data[0].worker) ? ('' + hire.data[0].worker.descriptor) : (empty(queryParams.event) ? 'Open this from the onboarding task (?event=)' : ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).hireWid ?? ''))) %>"
+            },
+            {
+              "type": "text",
+              "id": "orgText",
+              "label": "<% presentationLabels.KitPrepare_orgText_label %>",
+              "enabled": false,
+              "value": "<% (tier.mapOf(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).orgWid ?? ''))).name ?? '') + ' (' + (tier.mapOf(list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).orgWid ?? ''))).deptName ?? '') + ')' %>"
+            },
+            {
+              "type": "textArea",
+              "id": "noteTextArea",
+              "label": "<% presentationLabels.KitPrepare_noteTextArea_label %>",
+              "value": "<% tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).managerNote ?? '' %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "accessGrid",
+          "label": "<% presentationLabels.KitPrepare_accessGrid_label %>",
+          "rowVariableName": "xr",
+          "rows": "<% tier.accessRows(items.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).orgWid ?? '')), (snaps.data ?? []).filter(x => { ('' + (x.jobProfile ?? '')) == (((hire.data ?? []).size() > 0 && !empty(hire.data[0].jobProfile)) ? ('' + hire.data[0].jobProfile.id) : '') }), settings.data ?? []) %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "render": "<% tier.accessRows(items.data ?? [], list:flatten([mapP0.data ?? [], mapP1.data ?? [], mapP2.data ?? []]), ('' + (tier.first(tier.kitByType(tasks.data ?? [], 'prepare')).orgWid ?? '')), (snaps.data ?? []).filter(x => { ('' + (x.jobProfile ?? '')) == (((hire.data ?? []).size() > 0 && !empty(hire.data[0].jobProfile)) ? ('' + hire.data[0].jobProfile.id) : '') }), settings.data ?? []).size() > 0 %>",
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "codeColumn",
+              "label": "<% presentationLabels.KitPrepare_codeColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "codeText",
+                "enabled": false,
+                "value": "<% xr.code ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "titleColumn",
+              "label": "<% presentationLabels.KitPrepare_titleColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "titleText",
+                "enabled": false,
+                "value": "<% xr.title ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "groupKindColumn",
+              "label": "<% presentationLabels.KitPrepare_groupKindColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "groupKindText",
+                "enabled": false,
+                "value": "<% xr.group ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "groupColumn",
+              "label": "<% presentationLabels.KitPrepare_groupColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "groupText",
+                "enabled": false,
+                "value": "<% xr.fulfiller ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "sensColumn",
+              "label": "<% presentationLabels.KitPrepare_sensColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "sensText",
+                "enabled": false,
+                "value": "<% xr.sensitivity ?? 'standard' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "recColumn",
+              "label": "<% presentationLabels.KitPrepare_recColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "recText",
+                "enabled": false,
+                "value": "<% xr.rec ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "requestColumn",
+              "label": "<% presentationLabels.KitPrepare_requestColumn_label %>",
+              "cellTemplate": {
+                "type": "checkBox",
+                "id": "requestCheckBox",
+                "value": "<% xr.ticked ?? false %>",
+                "onChange": "<% ((self.value != true && groupKindText.value == 'Baseline') || (self.value == true && sensText.value == 'elevated')) && empty(reasonText.value) ? reasonText.setError('Give a reason: the fulfiller sees it.') : reasonText.clearError() %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "reasonColumn",
+              "label": "<% presentationLabels.KitPrepare_reasonColumn_label %>",
+              "cellTemplate": {
+                "type": "text",
+                "id": "reasonText",
+                "value": "<% '' %>",
+                "onChange": "<% self.clearError() %>"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cancelOverride": {
+      "taskId": "DynMyForms"
+    }
+  }
+}

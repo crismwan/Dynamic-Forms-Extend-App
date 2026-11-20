@@ -98,6 +98,45 @@
       "securityDomains": [
         "DynConfidential"
       ]
+    },
+    {
+      "id": 14,
+      "name": "tier",
+      "label": "Tier",
+      "type": "TEXT"
+    },
+    {
+      "id": 15,
+      "name": "source",
+      "label": "Source",
+      "type": "TEXT"
+    },
+    {
+      "id": 16,
+      "name": "validUntil",
+      "label": "Valid Until",
+      "type": "DATE",
+      "precision": "DAY"
+    },
+    {
+      "id": 17,
+      "name": "subjectWid",
+      "label": "Subject",
+      "type": "TEXT",
+      "enableIndex": true
+    },
+    {
+      "id": 18,
+      "name": "contextKey",
+      "label": "Context",
+      "type": "TEXT"
+    },
+    {
+      "id": 19,
+      "name": "answeredOn",
+      "label": "Answered On",
+      "type": "DATE",
+      "precision": "DAY"
     }
   ]
 }
